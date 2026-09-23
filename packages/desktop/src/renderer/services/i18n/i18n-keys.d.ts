@@ -86,6 +86,8 @@ export type I18nKey =
   | 'agentMode.switchSuccess'
   | 'agentMode.yolo'
   | 'agentMode.yoloNoSandbox'
+  | 'agentTasks.assistantAuto'
+  | 'agentTasks.assistantLabel'
   | 'agentTasks.conversationLabel'
   | 'agentTasks.createError'
   | 'agentTasks.createNewTask'

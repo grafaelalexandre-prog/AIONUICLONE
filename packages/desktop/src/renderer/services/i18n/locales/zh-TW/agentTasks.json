@@ -3,6 +3,8 @@
   "headerTitle": "Agent 任務",
   "headerDescription": "每個任務都會在 AionCore 中建立一段真實的對話，並啟動已啟用的助手，隨後自動等待回覆。",
   "createNewTask": "建立新任務",
+  "assistantLabel": "助手",
+  "assistantAuto": "自動（任務優先）",
   "newTaskPlaceholder": "Agent 該做什麼？",
   "noTasks": "還沒有任何任務。建立一個任務，看看 Agent 實際運作的情形。",
   "statusPending": "等待中",

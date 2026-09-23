@@ -3,6 +3,8 @@
   "headerTitle": "Agentenaufgaben",
   "headerDescription": "Jede Aufgabe erstellt ein echtes AionCore-Gespräch und startet den aktivierten Assistenten, der dann automatisch auf die Antwort wartet.",
   "createNewTask": "Neue Aufgabe erstellen",
+  "assistantLabel": "Assistent",
+  "assistantAuto": "Automatisch (Aufgaben zuerst)",
   "newTaskPlaceholder": "Was soll der Agent erledigen?",
   "noTasks": "Noch keine Aufgaben. Erstelle eine, um den Agenten in Aktion zu sehen.",
   "statusPending": "Ausstehend",

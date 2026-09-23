@@ -3,6 +3,8 @@
   "headerTitle": "Tareas del Agente",
   "headerDescription": "Cada tarea crea una conversación real en AionCore y activa el asistente habilitado, que luego espera automáticamente la respuesta.",
   "createNewTask": "Crear nueva tarea",
+  "assistantLabel": "Asistente",
+  "assistantAuto": "Automático (tareas primero)",
   "newTaskPlaceholder": "¿Qué debe hacer el agente?",
   "noTasks": "Aún no hay tareas. Crea una para ver al agente en acción.",
   "statusPending": "Pendiente",

@@ -3,6 +3,8 @@
   "headerTitle": "Agent Tasks",
   "headerDescription": "Dispatches autonomous tasks to your enabled assistants. Each task creates a real AionCore conversation and polls the agent until it replies.",
   "createNewTask": "Create new task",
+  "assistantLabel": "Assistant",
+  "assistantAuto": "Auto (task-only first)",
   "newTaskPlaceholder": "What should the agent do?",
   "noTasks": "No tasks yet. Create one to dispatch a real agent.",
   "statusPending": "Pending",

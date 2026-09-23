@@ -13,6 +13,7 @@
 
 import { mkdirSync } from 'node:fs';
 import type { Task } from '@/common/task/taskTypes';
+import { isTaskOnlyAssistant } from '@/common/task/taskAssistants';
 import {
   createConversation,
   getConversation,
@@ -158,12 +159,12 @@ export class TaskRunner {
     }
   }
 
-  /** Pick an enabled assistant, preferring one the backend reports as online. */
+  /** Pick an enabled assistant, preferring a task-only one, then an online one. */
   private async resolveAssistantId(port: number): Promise<string | null> {
     const assistants = await listAssistants(port);
     const enabled = assistants.filter((assistant) => assistant.enabled !== false && Boolean(assistant.id));
     const online = enabled.filter((assistant) => assistant.agent_status === 'online');
-    return (online[0] ?? enabled[0])?.id ?? null;
+    return (online.find((assistant) => isTaskOnlyAssistant(assistant)) ?? online[0] ?? enabled[0])?.id ?? null;
   }
 
   /**

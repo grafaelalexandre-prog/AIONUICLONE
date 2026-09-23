@@ -5,15 +5,21 @@
  */
 
 import classNames from 'classnames';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Button, Empty, Message, Popconfirm, Spin, Tag } from '@arco-design/web-react';
+import { Button, Empty, Input, Message, Popconfirm, Select, Spin, Tag } from '@arco-design/web-react';
 import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import SettingsPageHeader from '@/renderer/pages/settings/components/SettingsPageHeader';
 import { Delete, Robot, Send } from '@icon-park/react';
 import type { Task } from '@/common/task/taskTypes';
+import { selectableAssistants } from '@/renderer/utils/model/assistantSelection';
+import { isTaskOnlyAssistant } from '@/common/task/taskAssistants';
+import { useAssistantList } from '@/renderer/hooks/assistant/useAssistantList';
 import { useAgentTasks } from './useAgentTasks';
+
+/** Sentinel select value — the runner resolves the assistant itself (task-only first). */
+const AUTO_ASSISTANT = '';
 
 const statusColor = (status: Task['status']): string => {
   switch (status) {
@@ -42,14 +48,24 @@ const AgentTasksPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { tasks, loading, error, creating, createTask, deleteTask } = useAgentTasks();
+  const { assistants, localeKey } = useAssistantList();
   const [mission, setMission] = useState('');
+  const [assistantId, setAssistantId] = useState<string>(AUTO_ASSISTANT);
   const hasTaskApi = typeof window !== 'undefined' && Boolean(window.taskAPI);
+
+  // Enabled assistants with task-only ones (Cline) surfaced first — they are
+  // the intended default for autonomous tasks.
+  const assistantOptions = useMemo(() => {
+    const enabled = selectableAssistants(assistants);
+    return [...enabled.filter(isTaskOnlyAssistant), ...enabled.filter((a) => !isTaskOnlyAssistant(a))];
+  }, [assistants]);
 
   const handleCreate = useCallback(async () => {
     const trimmed = mission.trim();
     if (!trimmed || creating) return;
     try {
-      const task = await createTask(trimmed);
+      const options = assistantId === AUTO_ASSISTANT ? undefined : { assistant_id: assistantId };
+      const task = await createTask(trimmed, options);
       if (task) {
         setMission('');
         Message.success(t('agentTasks.taskCreated'));
@@ -57,7 +73,7 @@ const AgentTasksPage: React.FC = () => {
     } catch (err) {
       Message.error(`${t('agentTasks.createError')}: ${err instanceof Error ? err.message : String(err)}`);
     }
-  }, [mission, creating, createTask, t]);
+  }, [mission, assistantId, creating, createTask, t]);
 
   const handleDelete = useCallback(
     async (id: string) => {
@@ -136,18 +152,51 @@ const AgentTasksPage: React.FC = () => {
             data-testid='agent-tasks-header'
             title={t('agentTasks.headerTitle')}
             description={t('agentTasks.headerDescription')}
-            actions={
-              <Button
-                type='primary'
-                icon={<Send size={14} />}
-                onClick={handleCreate}
-                loading={creating}
-                disabled={!mission.trim()}
-              >
-                {t('agentTasks.createNewTask')}
-              </Button>
-            }
           />
+        </div>
+      </div>
+
+      {/* Mission composer — task-only assistants are offered first; leaving the
+          select on "auto" lets the runner resolve (it prefers task-only too). */}
+      <div className={classNames('shrink-0', isMobile ? 'px-16px pb-14px' : 'px-12px pb-14px md:px-40px md:pb-16px')}>
+        <div className='mx-auto w-full max-w-800px box-border flex items-stretch gap-8px'>
+          <Select
+            className='w-180px shrink-0'
+            value={assistantId}
+            onChange={(value) => setAssistantId(value as string)}
+            aria-label={t('agentTasks.assistantLabel')}
+            disabled={assistantOptions.length === 0}
+          >
+            <Select.Option value={AUTO_ASSISTANT}>{t('agentTasks.assistantAuto')}</Select.Option>
+            {assistantOptions.map((assistant) => (
+              <Select.Option key={assistant.id} value={assistant.id}>
+                {assistant.name_i18n?.[localeKey] || assistant.name}
+              </Select.Option>
+            ))}
+          </Select>
+          <Input.TextArea
+            className='flex-1'
+            value={mission}
+            placeholder={t('agentTasks.newTaskPlaceholder')}
+            onChange={setMission}
+            onPressEnter={(event) => {
+              if (event.nativeEvent.isComposing) return;
+              event.preventDefault();
+              void handleCreate();
+            }}
+            autoSize={{ minRows: 2, maxRows: 6 }}
+            disabled={creating}
+          />
+          <Button
+            type='primary'
+            icon={<Send size={14} />}
+            onClick={handleCreate}
+            loading={creating}
+            disabled={!mission.trim()}
+            className='self-flex-start'
+          >
+            {t('agentTasks.createNewTask')}
+          </Button>
         </div>
       </div>
 

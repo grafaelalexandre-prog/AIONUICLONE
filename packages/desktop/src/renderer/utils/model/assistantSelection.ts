@@ -5,6 +5,7 @@
  */
 
 import type { Assistant } from '@/common/types/agent/assistantTypes';
+import { isTaskOnlyAssistant } from '@/common/task/taskAssistants';
 
 /**
  * Single source of truth for which assistants appear in a *selection* list
@@ -76,6 +77,14 @@ export const selectableAssistants = (assistants: Assistant[], preferredOrder?: r
 
   return orderedAssistants;
 };
+
+/**
+ * Chat-surface selection: `selectableAssistants` minus task-only assistants
+ * (see `isTaskOnlyAssistant`). Settings and the Agent Tasks page keep showing
+ * task-only assistants; chat pickers must not offer them.
+ */
+export const chatSelectableAssistants = (assistants: Assistant[], preferredOrder?: readonly string[]): Assistant[] =>
+  selectableAssistants(assistants, preferredOrder).filter((assistant) => !isTaskOnlyAssistant(assistant));
 
 /** Build the persisted enabled order after an assistant is toggled. */
 export const assistantOrderAfterToggle = (

@@ -12,7 +12,7 @@ export type UseAgentTasksResult = {
   loading: boolean;
   error: string | null;
   creating: boolean;
-  createTask: (mission: string) => Promise<Task | null>;
+  createTask: (mission: string, options?: { assistant_id?: string }) => Promise<Task | null>;
   deleteTask: (id: string) => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -60,12 +60,12 @@ export function useAgentTasks(): UseAgentTasksResult {
   }, [refresh]);
 
   const createTask = useCallback(
-    async (mission: string): Promise<Task | null> => {
+    async (mission: string, options?: { assistant_id?: string }): Promise<Task | null> => {
       const api = window.taskAPI;
       if (!api) return null;
       setCreating(true);
       try {
-        const task = await api.create(mission);
+        const task = await api.create(mission, options);
         await refresh();
         return task;
       } finally {

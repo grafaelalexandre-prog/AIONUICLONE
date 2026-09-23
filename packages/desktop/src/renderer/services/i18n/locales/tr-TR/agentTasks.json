@@ -3,6 +3,8 @@
   "headerTitle": "Ajan Agenti",
   "headerDescription": "Her görevi AionCore'da gerçek bir konuşma oluşturur ve etkinleştirilmiş asistanı başlatır; ardından otomatik olarak yanıt beklenir.",
   "createNewTask": "Yeni görev oluştur",
+  "assistantLabel": "Asistan",
+  "assistantAuto": "Otomatik (görevler önce)",
   "newTaskPlaceholder": "Asistan ne yapmalı?",
   "noTasks": "Henüz görev yok. Asistanı canlı olarak görmek için bir tane oluşturun.",
   "statusPending": "Beklemede",

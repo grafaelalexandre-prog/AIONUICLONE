@@ -6,7 +6,12 @@
 
 import { describe, expect, it } from 'vitest';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
-import { assistantOrderAfterToggle, selectableAssistants } from '@/renderer/utils/model/assistantSelection';
+import { isTaskOnlyAssistant, TASK_ONLY_ASSISTANT_NAMES } from '@/common/task/taskAssistants';
+import {
+  assistantOrderAfterToggle,
+  chatSelectableAssistants,
+  selectableAssistants,
+} from '@/renderer/utils/model/assistantSelection';
 
 const mk = (id: string, source: Assistant['source'], sort_order: number, enabled = true): Assistant =>
   ({
@@ -69,6 +74,40 @@ describe('selectableAssistants', () => {
     const result = selectableAssistants(assistants, ['missing', 'custom-known', 'custom-known']);
 
     expect(result.map((assistant) => assistant.id)).toEqual(['custom-known', 'cli-new', 'official-new']);
+  });
+});
+
+describe('isTaskOnlyAssistant / chatSelectableAssistants', () => {
+  it('matches the reserved task-only names case-insensitively with trimmed whitespace', () => {
+    expect(TASK_ONLY_ASSISTANT_NAMES.has('cline')).toBe(true);
+    expect(isTaskOnlyAssistant({ name: 'Cline' })).toBe(true);
+    expect(isTaskOnlyAssistant({ name: '  CLINE  ' })).toBe(true);
+    expect(isTaskOnlyAssistant({ name: 'Claude Code' })).toBe(false);
+    expect(isTaskOnlyAssistant({})).toBe(false);
+    expect(isTaskOnlyAssistant(null)).toBe(false);
+    expect(isTaskOnlyAssistant(undefined)).toBe(false);
+  });
+
+  it('keeps task-only assistants out of chat selection but visible in the full list', () => {
+    const cline = { ...mk('cline', 'generated', 1), name: 'Cline' };
+    const assistants = [cline, mk('cli-a', 'generated', 2), mk('builtin-a', 'builtin', 3)];
+
+    expect(chatSelectableAssistants(assistants).map((a) => a.id)).toEqual(['cli-a', 'builtin-a']);
+    // The unfiltered list still includes them — settings/tasks surfaces rely on it.
+    expect(selectableAssistants(assistants).map((a) => a.id)).toEqual(['cline', 'cli-a', 'builtin-a']);
+  });
+
+  it('honors the stored preferred order while excluding task-only assistants', () => {
+    const assistants = [
+      { ...mk('cline', 'generated', 1), name: 'Cline' },
+      mk('official', 'builtin', 2),
+      mk('cli', 'generated', 3),
+    ];
+
+    expect(chatSelectableAssistants(assistants, ['official', 'cline', 'cli']).map((a) => a.id)).toEqual([
+      'official',
+      'cli',
+    ]);
   });
 });
 

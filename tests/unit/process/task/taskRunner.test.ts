@@ -28,6 +28,8 @@ type FakeAioncoreOptions = {
   runtimeStates?: string[];
   /** Transcript returned once the turn reports idle. */
   messages?: unknown[];
+  /** Rows served by `GET /api/assistants`. Defaults to one online assistant. */
+  assistants?: Array<Record<string, unknown>>;
 };
 
 type FakeAioncore = {
@@ -61,7 +63,7 @@ async function startFakeAioncore(options: FakeAioncoreOptions = {}): Promise<Fak
       if (req.method === 'GET' && url === '/api/assistants') {
         json(200, {
           success: true,
-          data: [{ id: 'bare:test-assistant', enabled: true, agent_status: 'online' }],
+          data: options.assistants ?? [{ id: 'bare:test-assistant', enabled: true, agent_status: 'online' }],
         });
         return;
       }
@@ -256,6 +258,52 @@ describe('TaskRunner', () => {
       expect(settled?.status).toBe('failed');
       expect(settled?.agent_id).toBeNull();
       expect(settled?.error).toContain('aioncore is not running');
+    });
+  });
+
+  describe('assistant resolution', () => {
+    it('prefers an online task-only assistant over other online assistants', async () => {
+      aioncore = await startServer({
+        assistants: [
+          { id: 'bare:other', enabled: true, agent_status: 'online', name: 'Aion CLI' },
+          { id: 'bare:cline', enabled: true, agent_status: 'online', name: 'Cline' },
+        ],
+        messages: [{ type: 'text', position: 'left', status: 'finish', content: { content: AGENT_REPLY } }],
+      });
+      enqueue('dispatch me');
+      await makeRunner(aioncore.port).runNext();
+
+      expect((aioncore.createBodies[0]?.assistant as { id?: string })?.id).toBe('bare:cline');
+      expect(getTask(db, taskId)?.status).toBe('completed');
+    });
+
+    it('falls back to any online assistant when the task-only one is offline', async () => {
+      aioncore = await startServer({
+        assistants: [
+          { id: 'bare:other', enabled: true, agent_status: 'online', name: 'Aion CLI' },
+          { id: 'bare:cline', enabled: true, agent_status: 'offline', name: 'Cline' },
+        ],
+        messages: [{ type: 'text', position: 'left', status: 'finish', content: { content: AGENT_REPLY } }],
+      });
+      enqueue('dispatch me');
+      await makeRunner(aioncore.port).runNext();
+
+      expect((aioncore.createBodies[0]?.assistant as { id?: string })?.id).toBe('bare:other');
+      expect(getTask(db, taskId)?.status).toBe('completed');
+    });
+
+    it('never picks a disabled assistant', async () => {
+      aioncore = await startServer({
+        assistants: [
+          { id: 'bare:off', enabled: false, agent_status: 'online', name: 'Disabled' },
+          { id: 'bare:on', enabled: true, agent_status: 'unchecked', name: 'Enabled' },
+        ],
+        messages: [{ type: 'text', position: 'left', status: 'finish', content: { content: AGENT_REPLY } }],
+      });
+      enqueue('dispatch me');
+      await makeRunner(aioncore.port).runNext();
+
+      expect((aioncore.createBodies[0]?.assistant as { id?: string })?.id).toBe('bare:on');
     });
   });
 

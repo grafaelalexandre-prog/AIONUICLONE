@@ -15,7 +15,7 @@ import { managedAgentSearchText } from '@/renderer/utils/model/agentTypes';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
 import ThemedLogo from '@/renderer/components/agent/ThemedLogo';
-import { selectableAssistants } from '@/renderer/utils/model/assistantSelection';
+import { chatSelectableAssistants } from '@/renderer/utils/model/assistantSelection';
 import { useTranslation } from 'react-i18next';
 
 /**
@@ -85,7 +85,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   const [adaptiveVisibleLimit, setAdaptiveVisibleLimit] = useState(widthVisibleLimit);
   const visibleLimit = Math.min(widthVisibleLimit, adaptiveVisibleLimit);
   const enabledAssistants = useMemo(
-    () => selectableAssistants(assistants, assistantOrder),
+    () => chatSelectableAssistants(assistants, assistantOrder),
     [assistantOrder, assistants]
   );
 

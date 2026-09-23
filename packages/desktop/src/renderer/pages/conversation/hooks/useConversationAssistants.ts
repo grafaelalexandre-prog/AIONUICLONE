@@ -9,7 +9,7 @@ import useSWR, { mutate } from 'swr';
 import { ipcBridge } from '@/common';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { useAssistantOrder } from '@/renderer/hooks/assistant/useAssistantOrder';
-import { selectableAssistants } from '@/renderer/utils/model/assistantSelection';
+import { chatSelectableAssistants } from '@/renderer/utils/model/assistantSelection';
 
 export type UseConversationAssistantsResult = {
   presetAssistants: Assistant[];
@@ -32,10 +32,11 @@ export const useConversationAssistants = (): UseConversationAssistantsResult => 
   // don't re-fire on every render. SWR returns the same `assistants`
   // reference between renders, so the memo only recomputes on real updates.
   // The enabled-order preference is shared with settings, Guid, teams, and
-  // scheduled tasks. Without one, `selectableAssistants` preserves the legacy
-  // CLI → user → official ordering.
+  // scheduled tasks. Without one, the legacy CLI → user → official ordering
+  // applies. Task-only assistants (Cline) are reserved for Agent Tasks and
+  // never offered on this chat surface.
   const presetAssistants = useMemo(
-    () => selectableAssistants(assistants ?? [], assistantOrder),
+    () => chatSelectableAssistants(assistants ?? [], assistantOrder),
     [assistantOrder, assistants]
   );
 
