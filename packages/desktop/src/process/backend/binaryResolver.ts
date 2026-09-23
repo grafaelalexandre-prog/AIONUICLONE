@@ -3,12 +3,14 @@
  *
  * Search order:
  *  1. AIONUI_BACKEND_BIN env override (path, resolved to absolute)
- *  2. Bundled with app (production)
- *  3. System PATH
+ *  2. Bundled with app (production: process.resourcesPath)
+ *  3. Dev checkout: walk up from this file / cwd to resources/bundled-aioncore
+ *     (plus AIONUI_BACKEND_BUNDLED_DIR override, same as scripts/webui.ts)
+ *  4. System PATH
  */
 
 import { existsSync, readdirSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { execSync } from 'node:child_process';
 
 const BINARY_NAME = 'aioncore';
@@ -125,20 +127,83 @@ function bundledPath(
   binaryName: string,
   diagnostics: BackendBinaryResolveDiagnostics
 ): string | null {
+  const resourcesPaths = candidateResourcesPaths(runtimeKey, binaryName);
+  if (resourcesPaths.length === 0) return null;
+  diagnostics.resourcesPath = resourcesPaths[0];
+
+  for (const resourcesPath of resourcesPaths) {
+    const bundledDir = join(resourcesPath, 'bundled-aioncore');
+    const runtimeDir = join(bundledDir, runtimeKey);
+    const candidate = join(runtimeDir, binaryName);
+    if (existsSync(candidate)) return candidate;
+    // Keep diagnostics for the first (packaged-style) candidate so the
+    // failure report still points at the location the packaged app uses.
+    if (diagnostics.checkedBundledPath === undefined) {
+      diagnostics.checkedBundledPath = candidate;
+      diagnostics.bundledDirExists = existsSync(bundledDir);
+      diagnostics.runtimeDirExists = existsSync(runtimeDir);
+      diagnostics.resourcesDirEntries = listDirEntries(resourcesPath);
+      diagnostics.runtimeDirEntries = listDirEntries(runtimeDir);
+    }
+  }
+  return null;
+}
+
+/**
+ * Candidate roots that can hold `bundled-aioncore/{platform}-{arch}/aioncore`.
+ *
+ * 1. Packaged app resources dir (process.resourcesPath — undefined in dev).
+ * 2. `AIONUI_BACKEND_BUNDLED_DIR` override (same env var honored by
+ *    scripts/webui.ts `resolveBackendBinary()`), so dev and scripts agree.
+ * 3. Repo checkout `resources/` — found by walking up from this file and from
+ *    `process.cwd()` (dev layouts vary: `packages/desktop/out/main`,
+ *    repo root, etc.), so no hardcoded `..` depth that breaks per layout.
+ */
+function candidateResourcesPaths(runtimeKey: string, binaryName: string): string[] {
+  const roots: string[] = [];
   const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
-  if (!resourcesPath) return null;
-  diagnostics.resourcesPath = resourcesPath;
+  if (resourcesPath) roots.push(resourcesPath);
 
-  const bundledDir = join(resourcesPath, 'bundled-aioncore');
-  const runtimeDir = join(bundledDir, runtimeKey);
-  const candidate = join(runtimeDir, binaryName);
-  diagnostics.checkedBundledPath = candidate;
-  diagnostics.bundledDirExists = existsSync(bundledDir);
-  diagnostics.runtimeDirExists = existsSync(runtimeDir);
-  diagnostics.resourcesDirEntries = listDirEntries(resourcesPath);
-  diagnostics.runtimeDirEntries = listDirEntries(runtimeDir);
+  const envDir = process.env.AIONUI_BACKEND_BUNDLED_DIR?.trim();
+  if (envDir) roots.push(envDir.endsWith('bundled-aioncore') ? dirname(envDir) : envDir);
 
-  if (existsSync(candidate)) return candidate;
+  const startDirs: string[] = [];
+  try {
+    const here: string = typeof __dirname !== 'undefined' ? __dirname : '';
+    if (here) startDirs.push(here);
+  } catch {
+    // ignore — fall through to cwd candidate
+  }
+  startDirs.push(process.cwd());
+
+  for (const start of startDirs) {
+    const found = walkUpToBundledResources(start, runtimeKey, binaryName);
+    if (found) roots.push(found);
+  }
+
+  const seen = new Set<string>();
+  return roots.filter((root) => {
+    if (seen.has(root)) return false;
+    seen.add(root);
+    return true;
+  });
+}
+
+/**
+ * Walk up from `start` (max 10 levels) looking for a `resources/` dir that
+ * actually contains the bundled binary for this platform. Returning only a
+ * dir that holds the binary keeps dev checkouts working without ever
+ * shadowing the packaged path or PATH lookup with a wrong guess.
+ */
+function walkUpToBundledResources(start: string, runtimeKey: string, binaryName: string): string | null {
+  let dir = resolve(start);
+  for (let level = 0; level < 10; level++) {
+    const candidate = join(dir, 'resources', 'bundled-aioncore', runtimeKey, binaryName);
+    if (existsSync(candidate)) return join(dir, 'resources');
+    const parent = dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
   return null;
 }
 

@@ -6,7 +6,7 @@
 
 import { execSync } from 'node:child_process';
 import { existsSync, readdirSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolveBinaryPath } from '@/process/backend/binaryResolver';
 
@@ -21,6 +21,7 @@ vi.mock('node:fs', () => ({
 
 const originalResourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
 const originalBackendBin = process.env.AIONUI_BACKEND_BIN;
+const originalBundledDirEnv = process.env.AIONUI_BACKEND_BUNDLED_DIR;
 
 function setResourcesPath(resourcesPath: string | undefined): void {
   Object.defineProperty(process, 'resourcesPath', {
@@ -35,6 +36,11 @@ function restoreBackendBin(): void {
   } else {
     process.env.AIONUI_BACKEND_BIN = originalBackendBin;
   }
+  if (originalBundledDirEnv === undefined) {
+    delete process.env.AIONUI_BACKEND_BUNDLED_DIR;
+  } else {
+    process.env.AIONUI_BACKEND_BUNDLED_DIR = originalBundledDirEnv;
+  }
 }
 
 function dirEntry(name: string, isDirectory = false): ReturnType<typeof readdirSync>[number] {
@@ -48,6 +54,7 @@ describe('resolveBinaryPath', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     delete process.env.AIONUI_BACKEND_BIN;
+    delete process.env.AIONUI_BACKEND_BUNDLED_DIR;
   });
 
   afterEach(() => {
@@ -114,9 +121,39 @@ describe('resolveBinaryPath', () => {
 
     setResourcesPath(undefined);
     vi.mocked(execSync).mockReturnValue(`${resolved}\n`);
+    // walkUpToBundledResources must not match: only the exact dev candidate
+    // returns true, everything else returns false.
     vi.mocked(existsSync).mockImplementation((path) => path === resolved);
 
     expect(resolveBinaryPath()).toBe(resolved);
+  });
+
+  it('falls back to the repo checkout bundled binary when resourcesPath is unset (dev)', () => {
+    const runtimeKey = `${process.platform}-${process.arch}`;
+    const binaryName = process.platform === 'win32' ? 'aioncore.exe' : 'aioncore';
+    const repoRoot = resolve(process.cwd());
+    const devCandidate = join(repoRoot, 'resources', 'bundled-aioncore', runtimeKey, binaryName);
+
+    setResourcesPath(undefined);
+    vi.mocked(existsSync).mockImplementation((path) => String(path) === devCandidate);
+    vi.mocked(readdirSync).mockReturnValue([]);
+
+    expect(resolveBinaryPath()).toBe(devCandidate);
+    expect(vi.mocked(execSync)).not.toHaveBeenCalled();
+  });
+
+  it('honors AIONUI_BACKEND_BUNDLED_DIR when resourcesPath is unset (dev)', () => {
+    const runtimeKey = `${process.platform}-${process.arch}`;
+    const binaryName = process.platform === 'win32' ? 'aioncore.exe' : 'aioncore';
+    const customBase = resolve('/custom', 'artifacts', 'bundled-aioncore');
+    const customCandidate = join(dirname(customBase), 'bundled-aioncore', runtimeKey, binaryName);
+
+    setResourcesPath(undefined);
+    process.env.AIONUI_BACKEND_BUNDLED_DIR = customBase;
+    vi.mocked(existsSync).mockImplementation((path) => String(path) === customCandidate);
+    vi.mocked(readdirSync).mockReturnValue([]);
+
+    expect(resolveBinaryPath()).toBe(customCandidate);
   });
 
   it('attaches bundled path diagnostics when aioncore cannot be resolved', () => {
