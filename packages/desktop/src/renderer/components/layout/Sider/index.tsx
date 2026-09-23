@@ -7,7 +7,13 @@ import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { blurActiveElement } from '@renderer/utils/ui/focus';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
-import { SiderToolbar, SiderSearchEntry, SiderScheduledEntry, SiderAssistantEntry } from './SiderNav';
+import {
+  SiderToolbar,
+  SiderSearchEntry,
+  SiderScheduledEntry,
+  SiderAssistantEntry,
+  SiderAgentTasksEntry,
+} from './SiderNav';
 import SiderFooter from './SiderFooter';
 import TeamSiderSection from './TeamSiderSection';
 import siderStyles from './Sider.module.css';
@@ -31,6 +37,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const { logout, status } = useAuth();
   const { theme, setTheme } = useThemeContext();
   const [isBatchMode, setIsBatchMode] = useState(false);
+  const isAgentTasks = pathname === '/agent-tasks';
   const isSettings = pathname.startsWith('/settings');
   const lastNonSettingsPathRef = useRef('/guid');
   const showLogout =
@@ -81,6 +88,18 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
     // keeps the preview open when switching between conversations of the same
     // scope and closes it only when the scope (today = workspace) actually changes.
     setIsBatchMode(false);
+  };
+
+  const handleAgentTasksClick = () => {
+    cleanupSiderTooltips();
+    blurActiveElement();
+    setIsBatchMode(false);
+    Promise.resolve(navigate('/agent-tasks')).catch((error) => {
+      console.error('Navigation failed:', error);
+    });
+    if (onSessionClick) {
+      onSessionClick();
+    }
   };
 
   const handleScheduledClick = () => {
@@ -215,6 +234,14 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               collapsed={collapsed}
               siderTooltipProps={siderTooltipProps}
               onClick={handleScheduledClick}
+            />
+            {/* Agent tasks nav entry - new */}
+            <SiderAgentTasksEntry
+              isMobile={isMobile}
+              isActive={isAgentTasks}
+              collapsed={collapsed}
+              siderTooltipProps={siderTooltipProps}
+              onClick={handleAgentTasksClick}
             />
             {/* Divider between fixed top nav and scrollable content area */}
             <div

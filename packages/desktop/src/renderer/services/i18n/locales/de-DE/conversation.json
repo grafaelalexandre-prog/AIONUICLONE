@@ -19,6 +19,25 @@
     "skillsMarketDesc": "Community-Skills auf Abruf suchen und aktivieren. Einmal konfigurieren, für alle Agenten verfügbar.",
     "skillsMarketDetails": "Mehr anzeigen >>"
   },
+  "project_agent": {
+    "button_title": "Project-Agent-Mission",
+    "modal_title": "Project Agent — Mission",
+    "project": "Projekt",
+    "no_project": "Kein Projekt verknüpft",
+    "workspace": "Arbeitsbereich",
+    "target_url": "Ziel-URL",
+    "url_placeholder": "https://ihr-system.beispiel.com",
+    "mission": "Mission",
+    "mission_placeholder": "z. B. System öffnen, einen Testdatensatz namens 'Smoke Test' anlegen, Pflichtfelder ausfüllen, speichern, neu laden und prüfen, dass er noch existiert.",
+    "start_mission": "Mission starten",
+    "cancel": "Abbrechen",
+    "loading_context": "Projektkontext wird geladen…",
+    "context_error": "Projektkontext konnte nicht geladen werden: {{reason}}",
+    "mission_required": "Schreiben Sie die Mission, bevor Sie starten.",
+    "url_invalid": "Geben Sie eine gültige http(s)-Ziel-URL ein.",
+    "mission_started": "Mission an den Agenten gesendet",
+    "shared_session_warning": "Die Sitzung des integrierten Browsers wird projekt- und tabellenübergreifend geteilt (Cookies bleiben nach dem Neustart erhalten). Bedienen Sie den Browser nicht, während der Agent arbeitet."
+  },
   "history": {
     "recents": "Zuletzt",
     "noHistory": "Kein Chatverlauf",

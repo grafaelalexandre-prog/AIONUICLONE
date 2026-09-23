@@ -19,6 +19,25 @@
     "skillsMarketDesc": "コミュニティ Skills をオンデマンドで検索・有効化。一度設定すれば、すべてのAgentで利用可能。",
     "skillsMarketDetails": "詳細 >>"
   },
+  "project_agent": {
+    "button_title": "Project Agent ミッション",
+    "modal_title": "Project Agent — ミッション",
+    "project": "プロジェクト",
+    "no_project": "紐付けられたプロジェクトなし",
+    "workspace": "ワークスペース",
+    "target_url": "ターゲット URL",
+    "url_placeholder": "https://your-system.example.com",
+    "mission": "ミッション",
+    "mission_placeholder": "例：システムを開き、「スモークテスト」というテストレコードを作成し、必須項目を入力して保存し、再読み込みしてレコードが存在することを確認する。",
+    "start_mission": "ミッション開始",
+    "cancel": "キャンセル",
+    "loading_context": "プロジェクトコンテキストを読み込み中…",
+    "context_error": "プロジェクトコンテキストの読み込みに失敗しました：{{reason}}",
+    "mission_required": "開始前にミッションを入力してください。",
+    "url_invalid": "有効な http(s) ターゲット URL を入力してください。",
+    "mission_started": "ミッションをエージェントに送信しました",
+    "shared_session_warning": "内蔵ブラウザーのセッションはプロジェクトやタブ間で共有されます（Cookie は再起動後も保持されます）。エージェントの動作中はブラウザーを操作しないでください。"
+  },
   "history": {
     "recents": "最近",
     "today": "今日",

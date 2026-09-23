@@ -51,6 +51,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   recoverCorruptedDatabase: () => ipcRenderer.invoke('backend:recover-corrupted-database'),
 });
 
+// Task bridge — the main-process task service owns persistence and dispatch, so
+// this surface is intentionally thin. `create` kicks a real aioncore
+// conversation; see `src/process/task/taskService.ts`.
+contextBridge.exposeInMainWorld('taskAPI', {
+  create: (mission: string, options?: { assistant_id?: string; workspace?: string }) =>
+    ipcRenderer.invoke('task:create', { mission, ...options }),
+  list: (options?: { status?: string; limit?: number; offset?: number }) => ipcRenderer.invoke('task:list', options),
+  get: (id: string) => ipcRenderer.invoke('task:get', id),
+  remove: (id: string) => ipcRenderer.invoke('task:delete', id),
+});
+
 // Synchronously fetch the aioncore port and expose it to the renderer
 // via contextBridge (direct window assignment is invisible under contextIsolation).
 const backendPort = ipcRenderer.sendSync('get-backend-port') as number;

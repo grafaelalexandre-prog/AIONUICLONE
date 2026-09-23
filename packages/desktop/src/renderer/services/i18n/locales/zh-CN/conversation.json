@@ -19,6 +19,25 @@
     "skillsMarketDesc": "按需搜索并调用社区 Skills，一次配置，所有Agent通用。",
     "skillsMarketDetails": "详情 >>"
   },
+  "project_agent": {
+    "button_title": "Project Agent 任务",
+    "modal_title": "Project Agent — 任务",
+    "project": "项目",
+    "no_project": "未关联项目",
+    "workspace": "工作区",
+    "target_url": "目标 URL",
+    "url_placeholder": "https://your-system.example.com",
+    "mission": "任务",
+    "mission_placeholder": "例如：打开系统，创建一条名为“冒烟测试”的测试记录，填写必填字段，保存，刷新并确认它仍然存在。",
+    "start_mission": "开始任务",
+    "cancel": "取消",
+    "loading_context": "正在加载项目上下文…",
+    "context_error": "加载项目上下文失败：{{reason}}",
+    "mission_required": "请先编写任务再开始。",
+    "url_invalid": "请输入有效的 http(s) 目标 URL。",
+    "mission_started": "任务已发送给智能体",
+    "shared_session_warning": "内置浏览器会话在项目和标签页之间共享（Cookie 重启后仍保留）。智能体工作时请勿操作浏览器。"
+  },
   "history": {
     "recents": "最近",
     "noHistory": "暂无对话历史",

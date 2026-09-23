@@ -19,6 +19,25 @@
     "skillsMarketDesc": "Recherchez et activez des compétences communautaires à la demande. Configurez une fois, disponible pour tous les agents.",
     "skillsMarketDetails": "Voir plus >>"
   },
+  "project_agent": {
+    "button_title": "Mission du Project Agent",
+    "modal_title": "Project Agent — Mission",
+    "project": "Projet",
+    "no_project": "Aucun projet lié",
+    "workspace": "Espace de travail",
+    "target_url": "URL cible",
+    "url_placeholder": "https://votre-systeme.exemple.com",
+    "mission": "Mission",
+    "mission_placeholder": "ex. : Ouvrez le système, créez un enregistrement de test nommé « Test de fumée », remplissez les champs requis, enregistrez, rechargez et vérifiez qu'il existe toujours.",
+    "start_mission": "Démarrer la mission",
+    "cancel": "Annuler",
+    "loading_context": "Chargement du contexte du projet…",
+    "context_error": "Échec du chargement du contexte du projet : {{reason}}",
+    "mission_required": "Rédigez la mission avant de démarrer.",
+    "url_invalid": "Saisissez une URL cible http(s) valide.",
+    "mission_started": "Mission envoyée à l'agent",
+    "shared_session_warning": "La session du navigateur intégré est partagée entre les projets et les onglets (les cookies persistent après redémarrage). N'utilisez pas le navigateur pendant que l'agent travaille."
+  },
   "history": {
     "recents": "Récents",
     "noHistory": "Aucun historique de chat",

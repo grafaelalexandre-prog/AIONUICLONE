@@ -19,6 +19,25 @@
     "skillsMarketDesc": "커뮤니티 Skills를 필요에 따라 검색하고 활성화. 한 번 설정하면 모든 Agent에서 사용 가능.",
     "skillsMarketDetails": "자세히 >>"
   },
+  "project_agent": {
+    "button_title": "Project Agent 미션",
+    "modal_title": "Project Agent — 미션",
+    "project": "프로젝트",
+    "no_project": "연결된 프로젝트 없음",
+    "workspace": "작업 공간",
+    "target_url": "대상 URL",
+    "url_placeholder": "https://your-system.example.com",
+    "mission": "미션",
+    "mission_placeholder": "예: 시스템을 열고 '스모크 테스트'라는 테스트 레코드를 만들고, 필수 필드를 채우고, 저장한 뒤, 새로고침하여 여전히 존재하는지 확인합니다.",
+    "start_mission": "미션 시작",
+    "cancel": "취소",
+    "loading_context": "프로젝트 컨텍스트를 불러오는 중…",
+    "context_error": "프로젝트 컨텍스트를 불러오지 못했습니다: {{reason}}",
+    "mission_required": "시작 전에 미션을 작성하세요.",
+    "url_invalid": "유효한 http(s) 대상 URL을 입력하세요.",
+    "mission_started": "미션이 에이전트에 전송되었습니다",
+    "shared_session_warning": "내장 브라우저 세션은 프로젝트와 탭 간에 공유됩니다(쿠키는 재시작 후에도 유지). 에이전트가 작업하는 동안에는 브라우저를 조작하지 마세요."
+  },
   "history": {
     "recents": "최근",
     "today": "오늘",

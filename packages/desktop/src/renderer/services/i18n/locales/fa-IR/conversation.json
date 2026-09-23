@@ -19,6 +19,25 @@
     "skillsMarketDesc": "مهارت‌های جامعه را جستجو و فعال کنید. یک‌بار پیکربندی کنید، برای همه ایجنت‌ها در دسترس باشد.",
     "skillsMarketDetails": "مشاهده بیشتر >>"
   },
+  "project_agent": {
+    "button_title": "مأموریت Project Agent",
+    "modal_title": "Project Agent — مأموریت",
+    "project": "پروژه",
+    "no_project": "پروژه‌ای متصل نیست",
+    "workspace": "فضای کاری",
+    "target_url": "URL هدف",
+    "url_placeholder": "https://system-shoma.nemune.com",
+    "mission": "مأموریت",
+    "mission_placeholder": "مثال: سیستم را باز کنید، یک رکورد آزمایشی به نام «تست دود» بسازید، فیلدهای اجباری را پر کنید، ذخیره کنید، صفحه را دوباره بارگذاری کنید و مطمئن شوید رکورد همچنان وجود دارد.",
+    "start_mission": "شروع مأموریت",
+    "cancel": "لغو",
+    "loading_context": "در حال بارگذاری زمینه پروژه…",
+    "context_error": "بارگذاری زمینه پروژه ناموفق بود: {{reason}}",
+    "mission_required": "قبل از شروع، مأموریت را بنویسید.",
+    "url_invalid": "یک URL هدف معتبر http(s) وارد کنید.",
+    "mission_started": "مأموریت به عامل ارسال شد",
+    "shared_session_warning": "نشست مرورگر داخلی بین پروژه‌ها و زبانه‌ها مشترک است (کوکی‌ها پس از راه‌اندازی مجدد باقی می‌مانند). هنگام کار عامل، مرورگر را استفاده نکنید."
+  },
   "history": {
     "recents": "اخیر",
     "noHistory": "تاریخچه چتی وجود ندارد",

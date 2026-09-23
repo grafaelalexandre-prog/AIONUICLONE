@@ -19,6 +19,25 @@
     "skillsMarketDesc": "按需搜尋並啟用社區 Skills，一次設定，所有Agent通用。",
     "skillsMarketDetails": "詳情 >>"
   },
+  "project_agent": {
+    "button_title": "Project Agent 任務",
+    "modal_title": "Project Agent — 任務",
+    "project": "專案",
+    "no_project": "未關聯專案",
+    "workspace": "工作區",
+    "target_url": "目標 URL",
+    "url_placeholder": "https://your-system.example.com",
+    "mission": "任務",
+    "mission_placeholder": "例如：開啟系統，建立一筆名為「冒煙測試」的測試記錄，填寫必填欄位，儲存，重新整理並確認它仍然存在。",
+    "start_mission": "開始任務",
+    "cancel": "取消",
+    "loading_context": "正在載入專案內容…",
+    "context_error": "載入專案內容失敗：{{reason}}",
+    "mission_required": "請先撰寫任務再開始。",
+    "url_invalid": "請輸入有效的 http(s) 目標 URL。",
+    "mission_started": "任務已傳送給代理人",
+    "shared_session_warning": "內建瀏覽器工作階段在專案與分頁之間共用（Cookie 重新啟動後仍保留）。代理人工作時請勿操作瀏覽器。"
+  },
   "history": {
     "recents": "最近",
     "today": "今天",

@@ -19,6 +19,25 @@
     "skillsMarketDesc": "Topluluk Skills'lerini ihtiyaç duyduğunuzda arayın ve etkinleştirin. Bir kez yapılandırın, tüm Agent'larda kullanılabilir.",
     "skillsMarketDetails": "Ayrıntılar >>"
   },
+  "project_agent": {
+    "button_title": "Project Agent görevi",
+    "modal_title": "Project Agent — Görev",
+    "project": "Proje",
+    "no_project": "Bağlı proje yok",
+    "workspace": "Çalışma alanı",
+    "target_url": "Hedef URL",
+    "url_placeholder": "https://sizin-sisteminiz.ornek.com",
+    "mission": "Görev",
+    "mission_placeholder": "örn. Sistemi açın, 'Duman Testi' adlı bir test kaydı oluşturun, zorunlu alanları doldurun, kaydedin, yeniden yükleyin ve kaydın hâlâ var olduğunu doğrulayın.",
+    "start_mission": "Görevi başlat",
+    "cancel": "İptal",
+    "loading_context": "Proje bağlamı yükleniyor…",
+    "context_error": "Proje bağlamı yüklenemedi: {{reason}}",
+    "mission_required": "Başlamadan önce görevi yazın.",
+    "url_invalid": "Geçerli bir http(s) hedef URL girin.",
+    "mission_started": "Görev ajana gönderildi",
+    "shared_session_warning": "Dahili tarayıcı oturumu projeler ve sekmeler arasında paylaşılır (çerezler yeniden başlatma sonrası da kalıcıdır). Ajan çalışırken tarayıcıyı kullanmayın."
+  },
   "history": {
     "recents": "Son",
     "today": "Bugün",

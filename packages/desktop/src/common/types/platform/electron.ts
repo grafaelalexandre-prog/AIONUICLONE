@@ -1,3 +1,5 @@
+import type { ListTasksOptions, Task } from '@/common/task/taskTypes';
+
 // WebUI 状态接口 / WebUI status interface
 export interface WebUIStatus {
   running: boolean;
@@ -95,5 +97,15 @@ declare global {
     };
     __installationIntegrityReportCount?: number;
     __lastInstallationIntegrityReportMessage?: string;
+    /**
+     * Task bridge exposed by the preload. Absent in WebUI browser mode, where
+     * the renderer runs without Electron — callers must guard on it.
+     */
+    taskAPI?: {
+      create: (mission: string, options?: { assistant_id?: string; workspace?: string }) => Promise<Task>;
+      list: (options?: ListTasksOptions) => Promise<Task[]>;
+      get: (id: string) => Promise<Task | null>;
+      remove: (id: string) => Promise<boolean>;
+    };
   }
 }

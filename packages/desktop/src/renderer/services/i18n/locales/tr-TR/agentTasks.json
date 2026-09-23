@@ -1,0 +1,20 @@
+{
+  "label": "Ajan Agenti",
+  "headerTitle": "Ajan Agenti",
+  "headerDescription": "Her görevi AionCore'da gerçek bir konuşma oluşturur ve etkinleştirilmiş asistanı başlatır; ardından otomatik olarak yanıt beklenir.",
+  "createNewTask": "Yeni görev oluştur",
+  "newTaskPlaceholder": "Asistan ne yapmalı?",
+  "noTasks": "Henüz görev yok. Asistanı canlı olarak görmek için bir tane oluşturun.",
+  "statusPending": "Beklemede",
+  "statusRunning": "Çalışıyor",
+  "statusCompleted": "Tamamlandı",
+  "statusFailed": "Başarısız",
+  "createError": "Görev oluşturulamıyor",
+  "taskCreated": "Görev oluşturuldu",
+  "deleteSuccess": "Görev silindi",
+  "deleteError": "Görev silinemiyor",
+  "conversationLabel": "Konuşma",
+  "deleteAria": "Görev sil",
+  "deleteConfirm": "Bu görevi silmek istediğinizden emin misiniz?",
+  "unavailable": "Görev API'si kullanılamıyor"
+}

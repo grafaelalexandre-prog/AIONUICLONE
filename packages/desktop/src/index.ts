@@ -220,6 +220,8 @@ const backendManager = new BackendLifecycleManager(
   resolveBinaryPath
 );
 let disposeCronResumeListener: (() => void) | null = null;
+/** Task service handle; null when the service never started. */
+let taskService: { stop: () => void } | null = null;
 
 // Flag tracking whether the backend subprocess started successfully. Read by
 // the deferred runBackendMigrations trigger in createWindow().
@@ -884,6 +886,29 @@ const handleAppReady = async (): Promise<void> => {
     const bootBackendPort = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
     if (backendStartedOk && bootBackendPort) {
       await ensureAdminUserOnce(bootBackendPort);
+    }
+
+    // Task service — dispatches pending tasks to aioncore as real conversations
+    // and records the agent's actual reply. It lives in the main process because
+    // the backend port is only known here and `--local` identity mode needs no
+    // token. Skipped under E2E so a test run never dispatches leftover tasks.
+    if (backendStartedOk && bootBackendPort && process.env.AIONUI_E2E_TEST !== '1') {
+      try {
+        const { getDataPath } = await import('./process/utils/utils');
+        const { startTaskService } = await import('./process/task/taskService');
+        const dataPath = getDataPath();
+        taskService = startTaskService({
+          dbPath: path.join(dataPath, 'tasks.db'),
+          getBackendPort: () => backendManager.port || bootBackendPort,
+          defaultWorkspace: path.join(dataPath, 'task-workspaces'),
+        });
+        app.on('will-quit', () => {
+          taskService?.stop();
+          taskService = null;
+        });
+      } catch (error) {
+        console.error('[TaskService] failed to start:', error);
+      }
     }
   }
 

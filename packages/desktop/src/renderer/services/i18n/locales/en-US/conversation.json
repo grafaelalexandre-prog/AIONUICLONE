@@ -19,6 +19,25 @@
     "skillsMarketDesc": "Search and activate community Skills on demand. Configure once, available for all agents.",
     "skillsMarketDetails": "View More >>"
   },
+  "project_agent": {
+    "button_title": "Project Agent mission",
+    "modal_title": "Project Agent — Mission",
+    "project": "Project",
+    "no_project": "No project linked",
+    "workspace": "Workspace",
+    "target_url": "Target URL",
+    "url_placeholder": "https://your-system.example.com",
+    "mission": "Mission",
+    "mission_placeholder": "e.g. Open the system, create a test record named 'Smoke Test', fill required fields, save it, reload and verify it still exists.",
+    "start_mission": "Start mission",
+    "cancel": "Cancel",
+    "loading_context": "Loading project context…",
+    "context_error": "Failed to load project context: {{reason}}",
+    "mission_required": "Write the mission before starting.",
+    "url_invalid": "Enter a valid http(s) target URL.",
+    "mission_started": "Mission sent to the agent",
+    "shared_session_warning": "The in-app browser session is shared across projects and tabs (cookies persist after restart). Do not operate the browser while the agent is working."
+  },
   "history": {
     "recents": "Recents",
     "noHistory": "No chat history",

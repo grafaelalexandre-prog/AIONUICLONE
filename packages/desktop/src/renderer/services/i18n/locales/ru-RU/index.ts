@@ -5,6 +5,7 @@
 
 import common from './common.json';
 import agentMode from './agentMode.json';
+import agentTasks from './agentTasks.json';
 import update from './update.json';
 import login from './login.json';
 import fileSelection from './fileSelection.json';
@@ -26,6 +27,7 @@ import pet from './pet.json';
 export default {
   common,
   agentMode,
+  agentTasks,
   update,
   login,
   fileSelection,
