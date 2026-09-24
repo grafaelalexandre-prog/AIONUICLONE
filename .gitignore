@@ -180,6 +180,13 @@ desdoc/
 
 # Local kanban (协作工作簿，不入库)
 kanban/
+# Kanban application code is versioned; only the local workbook remains ignored.
+!packages/desktop/src/common/kanban/
+!packages/desktop/src/common/kanban/**
+!packages/desktop/src/renderer/pages/kanban/
+!packages/desktop/src/renderer/pages/kanban/**
+!tests/unit/renderer/kanban/
+!tests/unit/renderer/kanban/**
 
 # E2E test artifacts (Playwright)
 tests/e2e/screenshots/
