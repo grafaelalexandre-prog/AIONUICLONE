@@ -153,9 +153,10 @@ const ModalMcpManagementSection: React.FC<{
       if (!addedServer) {
         throw new Error(t('settings.mcpImportFailed'));
       }
-      if (serverData.last_test_status !== 'connected') {
-        void handleTestMcpConnection(addedServer, { notify: false });
-      }
+      // Always retest the persisted record after save. The preflight result is
+      // useful for immediate feedback, but tools are not a second persisted
+      // catalog and must be rediscovered from the real backend record.
+      void handleTestMcpConnection(addedServer, { notify: false });
       return true;
     },
     [handleAddMcpServer, handleTestMcpConnection, t]

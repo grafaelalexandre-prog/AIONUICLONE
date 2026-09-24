@@ -590,7 +590,7 @@ export type TProviderWithModel = Omit<IProvider, 'models'> & {
 };
 
 // MCP Server Configuration Types
-export type McpTransportType = 'stdio' | 'sse' | 'http';
+export type McpTransportType = 'stdio' | 'sse' | 'http' | 'streamable_http';
 
 export interface IMcpServerTransportStdio {
   type: 'stdio';

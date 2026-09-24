@@ -54,7 +54,10 @@ const ToolCatalog: React.FC<ToolCatalogProps> = ({
   const integrations = useMemo(() => registry.list(), [registry]);
   const serversById = useMemo(() => {
     const map = new Map<string, IMcpServer>();
-    for (const server of [...backendServers, ...extensionServers]) map.set(server.id, server);
+    for (const server of backendServers) map.set(server.id, server);
+    for (const server of extensionServers) {
+      if (!map.has(server.id)) map.set(server.id, server);
+    }
     return map;
   }, [backendServers, extensionServers]);
 
