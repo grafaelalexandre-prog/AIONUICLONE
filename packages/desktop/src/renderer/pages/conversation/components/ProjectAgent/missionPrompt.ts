@@ -190,3 +190,25 @@ export function parseTargetUrlFromJson(raw: string | null | undefined): string {
 export function serializeTargetUrlJson(targetUrl: string): string {
   return `${JSON.stringify({ target_url: targetUrl.trim() }, null, 2)}\n`;
 }
+
+/** Build the initial `state.json` for a new mission.
+ *  The `plan` starts empty — it is populated ONLY from ACP
+ *  PlanUpdate events emitted by the agent at runtime.
+ *  Never synthesize steps from the objective. */
+export function buildMissionStateJson(params: {
+  objective: string;
+  workspace: string;
+  project: { id: string | null; name: string | null };
+  targetUrl: string;
+}): { objective: string; plan: { step: string; status: string }[]; turn_id: string | null; workspace: string; project: { id: string | null; name: string | null }; target_url: string; evidence: Record<string, string>; result: string | null } {
+  return {
+    objective: params.objective,
+    plan: [],
+    turn_id: null,
+    workspace: params.workspace,
+    project: params.project,
+    target_url: params.targetUrl,
+    evidence: {},
+    result: null,
+  };
+}

@@ -10,9 +10,8 @@
  * Source-of-truth policy (MVP):
  * - project_id / project_name / workspace: sourced from the existing backend
  *   (conversation `project_id` + `GET /api/projects/{id}`) — never duplicated.
- * - target_url: the ONLY project-local datum, stored as `project-agent.json`
- *   in the project workspace root, read/written through the existing
- *   `/api/fs/read` and `/api/fs/write` endpoints. No new persistence.
+ * - target_url: read from `.aion/mission/state.json` (preferred) with
+ *   fallback to `project-agent.json` for backward compatibility.
  */
 
 import { ipcBridge } from '@/common';
@@ -20,6 +19,9 @@ import type { TChatConversation } from '@/common/config/storage';
 import { PROJECT_AGENT_FILE_NAME } from './constants';
 import { parseTargetUrlFromJson, serializeTargetUrlJson } from './missionPrompt';
 import type { ProjectAgentContext } from './types';
+
+/** Mission directory inside the workspace. */
+export const MISSION_DIR = '.aion/mission';
 
 /** Join a path segment to a workspace root without node:path (renderer). */
 export function joinWorkspacePath(workspace: string, ...segments: string[]): string {
@@ -33,10 +35,50 @@ export function projectAgentFilePath(workspace: string): string {
   return joinWorkspacePath(workspace, PROJECT_AGENT_FILE_NAME);
 }
 
-/** Read the persisted target URL ('' when absent or invalid). */
+/** Absolute path of the mission state.json inside a workspace. */
+export function missionStatePath(workspace: string): string {
+  return joinWorkspacePath(workspace, MISSION_DIR, 'state.json');
+}
+
+/** Read the persisted target URL from state.json (preferred) or project-agent.json (fallback). */
 export async function readTargetUrl(workspace: string): Promise<string> {
+  // Prefer .aion/mission/state.json if it exists and carries a target_url.
+  try {
+    const stateRaw = await ipcBridge.fs.readFile.invoke({ path: missionStatePath(workspace), workspace });
+    if (stateRaw) {
+      const state = JSON.parse(stateRaw) as { target_url?: string };
+      if (state.target_url) return state.target_url;
+    }
+  } catch {
+    // state.json absent or invalid — fall through to project-agent.json.
+  }
   const raw = await ipcBridge.fs.readFile.invoke({ path: projectAgentFilePath(workspace), workspace });
   return parseTargetUrlFromJson(raw);
+}
+
+/** Read the full mission state.json, returning null when absent. */
+export async function readMissionState(workspace: string): Promise<unknown | null> {
+  try {
+    const raw = await ipcBridge.fs.readFile.invoke({ path: missionStatePath(workspace), workspace });
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Persist a mission state.json. Best-effort: failure is swallowed so that
+ *  a file write error never blocks the task/mission flow. */
+export async function writeMissionState(workspace: string, state: unknown): Promise<void> {
+  try {
+    await ipcBridge.fs.writeFile.invoke({
+      path: missionStatePath(workspace),
+      data: JSON.stringify(state, null, 2) + '\n',
+      workspace,
+    });
+  } catch {
+    // Tolerated — the task/mission proceeds without the durable mirror.
+    console.warn('[ProjectAgent] could not write mission state.json');
+  }
 }
 
 /** Persist the target URL into the workspace config file. */
