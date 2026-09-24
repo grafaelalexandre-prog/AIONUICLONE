@@ -19,6 +19,8 @@ import AionSelect from '@/renderer/components/base/AionSelect';
 import AddMcpServerModal from '@/renderer/pages/settings/components/AddMcpServerModal';
 import AddToolModal from '@/renderer/pages/settings/ToolsSettings/AddToolModal';
 import ToolCatalog from '@/renderer/pages/settings/ToolsSettings/ToolCatalog';
+import type { McpToolConnectionResult, McpToolDraft } from '@/renderer/services/tools/toolCatalog';
+import { toBackendMcpPayload } from '@/renderer/hooks/mcp/catalog';
 import {
   useMcpServers,
   useMcpConnection,
@@ -121,13 +123,39 @@ const ModalMcpManagementSection: React.FC<{
     [handleAddMcpServer, handleTestMcpConnection]
   );
 
+  const handleTestDraftConnection = useCallback(
+    async (serverData: McpToolDraft): Promise<McpToolConnectionResult> => {
+      // The current backend test endpoint only accepts persisted MCP records.
+      // Use the existing CRUD path for a short-lived preflight record, then
+      // remove it; no renderer-only MCP client or fake tool catalog is added.
+      const temporaryData: McpToolDraft = {
+        ...serverData,
+        name: `${serverData.name} (preflight)`,
+      };
+      const persisted = await mcpService.createServer.invoke(toBackendMcpPayload(temporaryData));
+      try {
+        return await mcpService.testMcpConnection.invoke({ ...persisted, runtime_scope_id: persisted.id });
+      } finally {
+        try {
+          await mcpService.deleteServer.invoke({ id: persisted.id });
+        } catch {
+          // The preflight result is still useful; the next catalog refresh will
+          // reconcile a cleanup failure without exposing credentials.
+        }
+      }
+    },
+    []
+  );
+
   const handleAddToolServer = useCallback(
     async (serverData: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>) => {
       const addedServer = await handleAddMcpServer(serverData);
       if (!addedServer) {
         throw new Error(t('settings.mcpImportFailed'));
       }
-      void handleTestMcpConnection(addedServer, { notify: false });
+      if (serverData.last_test_status !== 'connected') {
+        void handleTestMcpConnection(addedServer, { notify: false });
+      }
       return true;
     },
     [handleAddMcpServer, handleTestMcpConnection, t]
@@ -204,6 +232,7 @@ const ModalMcpManagementSection: React.FC<{
         visible={showAddToolModal}
         onCancel={() => setShowAddToolModal(false)}
         onSubmit={handleAddToolServer}
+        onTestConnection={handleTestDraftConnection}
       />
 
       <AddMcpServerModal

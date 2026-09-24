@@ -25,6 +25,19 @@ export type RemoteMcpUrlResult =
   | { ok: true; url: string }
   | { ok: false; error: 'empty' | 'invalid' | 'protocol' | 'credentials' | 'fragment' };
 
+export type McpToolConnectionResult = {
+  success: boolean;
+  tools?: Array<{
+    name: string;
+    description?: string;
+    input_schema?: unknown;
+    _meta?: Record<string, unknown>;
+  }>;
+  error?: string;
+  needsAuth?: boolean;
+  needs_auth?: boolean;
+};
+
 /**
  * Validate a user supplied MCP endpoint without making a request from the
  * renderer. The backend remains responsible for the actual network call and

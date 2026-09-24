@@ -63,6 +63,13 @@ describe('tool catalog normalization', () => {
     expect(integrations[0].source).toBe('backend-mcp');
   });
 
+  it('keeps built-in MCP records identifiable in the unified catalog', () => {
+    const registry = createToolCatalog([
+      server({ id: 'image-generation', name: 'Image Generation', builtin: true }),
+    ]);
+    expect(registry.list()[0].source).toBe('builtin-mcp');
+  });
+
   it('supports register, get, list and unregister operations', () => {
     const registry = createToolCatalog([server()]);
     const id = 'mcp:mcp-1';

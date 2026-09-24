@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Input, Modal, Radio, Space } from '@arco-design/web-react';
+import { Alert, Button, Input, Modal, Radio, Space } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import type { IMcpServer } from '@/common/config/storage';
 import {
   buildMcpToolDraft,
   normalizeRemoteMcpUrl,
   type McpToolAuthMode,
+  type McpToolConnectionResult,
   type McpToolKind,
 } from '@/renderer/services/tools/toolCatalog';
 
@@ -13,9 +14,21 @@ interface AddToolModalProps {
   visible: boolean;
   onCancel: () => void;
   onSubmit: (server: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>) => Promise<unknown>;
+  onTestConnection: (server: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>) => Promise<McpToolConnectionResult>;
 }
 
-const AddToolModal: React.FC<AddToolModalProps> = ({ visible, onCancel, onSubmit }) => {
+const toDiscoveredTools = (tools: McpToolConnectionResult['tools'] = []): IMcpServer['tools'] =>
+  tools.map((tool) => {
+    const discoveredTool: NonNullable<IMcpServer['tools']>[number] = {
+      name: tool.name,
+      description: tool.description,
+    };
+    if (tool.input_schema !== undefined) discoveredTool.input_schema = tool.input_schema;
+    if (tool._meta) discoveredTool._meta = tool._meta;
+    return discoveredTool;
+  });
+
+const AddToolModal: React.FC<AddToolModalProps> = ({ visible, onCancel, onSubmit, onTestConnection }) => {
   const { t } = useTranslation();
   const [kind, setKind] = useState<McpToolKind>('remote-mcp');
   const [authMode, setAuthMode] = useState<McpToolAuthMode>('none');
@@ -24,6 +37,8 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ visible, onCancel, onSubmit
   const [command, setCommand] = useState('');
   const [args, setArgs] = useState('');
   const [error, setError] = useState('');
+  const [testResult, setTestResult] = useState<McpToolConnectionResult | null>(null);
+  const [testing, setTesting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -35,8 +50,31 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ visible, onCancel, onSubmit
     setCommand('');
     setArgs('');
     setError('');
+    setTestResult(null);
+    setTesting(false);
     setSubmitting(false);
   }, [visible]);
+
+  useEffect(() => {
+    setTestResult(null);
+  }, [kind, authMode, name, url, command, args]);
+
+  const buildDraft = () => buildMcpToolDraft({ kind, authMode, name, url, command, args });
+
+  const handleTestConnection = async () => {
+    if (testing) return;
+    setError('');
+    try {
+      const draft = buildDraft();
+      setTesting(true);
+      const result = await onTestConnection(draft);
+      setTestResult(result);
+    } catch (testError) {
+      setError(testError instanceof Error ? testError.message : t('settings.mcpTestConnectionFailed'));
+    } finally {
+      setTesting(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (submitting) return;
@@ -51,9 +89,17 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ visible, onCancel, onSubmit
     }
 
     try {
-      const draft = buildMcpToolDraft({ kind, authMode, name, url, command, args });
+      const draft = buildDraft();
+      const submittedDraft = testResult?.success
+        ? {
+            ...draft,
+            last_test_status: 'connected' as const,
+            tools: toDiscoveredTools(testResult.tools),
+            last_connected: Date.now(),
+          }
+        : draft;
       setSubmitting(true);
-      const result = await onSubmit(draft);
+      const result = await onSubmit(submittedDraft);
       if (result !== false) onCancel();
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : t('settings.mcpImportFailed'));
@@ -61,6 +107,13 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ visible, onCancel, onSubmit
       setSubmitting(false);
     }
   };
+
+  const testNeedsAuth = Boolean(testResult?.needsAuth || testResult?.needs_auth);
+  const testMessage = testResult?.success
+    ? t('settings.mcpTestConnectionSuccess')
+    : testNeedsAuth
+      ? t('settings.mcpAuthRequired')
+      : testResult?.error || t('settings.mcpTestConnectionFailed');
 
   return (
     <Modal
@@ -156,6 +209,42 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ visible, onCancel, onSubmit
               </div>
             </div>
           </>
+        )}
+
+        <div className='flex justify-end'>
+          <Button
+            type='secondary'
+            loading={testing}
+            onClick={handleTestConnection}
+            data-testid='test-tool-connection'
+          >
+            {t('settings.mcpTestConnectionAction', { defaultValue: 'Test connection' })}
+          </Button>
+        </div>
+
+        {testResult && (
+          <div className='space-y-8px' data-testid='tool-connection-result'>
+            <Alert
+              type={testResult.success ? 'success' : testNeedsAuth ? 'warning' : 'error'}
+              showIcon
+              content={testMessage}
+            />
+            {testResult.tools && testResult.tools.length > 0 && (
+              <div className='rounded-lg border border-2 border-border-2 bg-bg-2 p-8px'>
+                <div className='mb-6px text-xs text-t-secondary'>
+                  {testResult.tools.length} {t('settings.toolsDiscovered', { defaultValue: 'real tools discovered' })}
+                </div>
+                <div className='space-y-4px'>
+                  {testResult.tools.map((tool) => (
+                    <div key={tool.name} className='text-xs text-t-primary'>
+                      <span className='font-medium'>{tool.name}</span>
+                      {tool.description ? <span className='text-t-secondary'> — {tool.description}</span> : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </Space>
     </Modal>

@@ -26,6 +26,13 @@ MCP HTTP backend path, normalized by the current contract to the backend's
 `http` transport (Streamable HTTP). Legacy SSE remains supported where the
 existing MCP implementation already supports it.
 
+The add form's **Test connection** action uses the existing backend
+create/test/delete path with a short-lived preflight record. The record is
+removed immediately after the real test; the displayed tool list comes only
+from the MCP response. If the user then saves, the normal CRUD path creates the
+real catalog entry. This is a compatibility bridge for the current backend
+contract, not a second MCP runtime or a permanent mock.
+
 ## Domain boundary
 
 The renderer normalizes backend, built-in and extension MCP records into:
