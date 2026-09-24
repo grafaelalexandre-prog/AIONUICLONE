@@ -117,8 +117,16 @@ export async function navigateTo(page: Page, hash: string): Promise<void> {
     const settingsPath = hash.replace(/^#\/settings\//, '');
     if (!isAlreadyAt(page, hash)) {
       const navItem = page.locator(`[data-settings-path="${settingsPath}"]`);
-      await navItem.waitFor({ state: 'visible', timeout: 10_000 });
-      await navItem.click();
+      if (await navItem.count()) {
+        await navItem.waitFor({ state: 'visible', timeout: 10_000 });
+        await navItem.click();
+      } else {
+        // The current SiderNavEntry intentionally has no test-only data
+        // attribute. The app is already mounted here, so use the same hash
+        // navigation path as the non-settings branch instead of failing on a
+        // stale selector.
+        await page.evaluate((h) => window.location.assign(h), hash);
+      }
       await page
         .waitForFunction((h) => window.location.hash.includes(h), `/settings/${settingsPath}`, { timeout: 10_000 })
         .catch(() => {});
