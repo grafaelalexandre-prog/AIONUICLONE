@@ -27,8 +27,16 @@ vi.mock('@/common', () => ({
   },
 }));
 
-const { joinWorkspacePath, projectAgentFilePath, readTargetUrl, saveTargetUrl, loadProjectAgentContext } =
-  await import('@/renderer/pages/conversation/components/ProjectAgent/projectContext');
+const {
+  joinWorkspacePath,
+  loadProjectAgentContext,
+  missionStatePath,
+  projectAgentFilePath,
+  readMissionState,
+  readTargetUrl,
+  saveTargetUrl,
+  writeMissionState,
+} = await import('@/renderer/pages/conversation/components/ProjectAgent/projectContext');
 
 const conversation = (workspace?: string, projectId?: string) =>
   ({ id: 'c1', type: 'aionrs', extra: workspace ? { workspace } : {}, project_id: projectId }) as never;
@@ -38,6 +46,7 @@ describe('joinWorkspacePath / projectAgentFilePath', () => {
     expect(joinWorkspacePath('C:/projects/obra', 'project-agent.json')).toBe('C:/projects/obra/project-agent.json');
     expect(joinWorkspacePath('C:\\projects\\obra\\', 'a.json')).toBe('C:\\projects\\obra\\a.json');
     expect(projectAgentFilePath('/home/u/obra')).toBe('/home/u/obra/project-agent.json');
+    expect(missionStatePath('/home/u/obra')).toBe('/home/u/obra/.aion/mission/state.json');
   });
 });
 
@@ -46,20 +55,59 @@ describe('readTargetUrl / saveTargetUrl', () => {
     vi.clearAllMocks();
   });
 
-  it('reads the URL from project-agent.json via /api/fs/read', async () => {
-    fsMock.readFile.invoke.mockResolvedValue('{"target_url": "https://a.b"}');
-    await expect(readTargetUrl('C:/w')).resolves.toBe('https://a.b');
-    expect(fsMock.readFile.invoke).toHaveBeenCalledWith({ path: 'C:/w/project-agent.json', workspace: 'C:/w' });
+  it('prefers the target URL from .aion/mission/state.json', async () => {
+    fsMock.readFile.invoke.mockResolvedValueOnce('{"target_url": "https://state.example"}');
+    await expect(readTargetUrl('C:/w')).resolves.toBe('https://state.example');
+    expect(fsMock.readFile.invoke).toHaveBeenCalledTimes(1);
+    expect(fsMock.readFile.invoke).toHaveBeenNthCalledWith(1, {
+      path: 'C:/w/.aion/mission/state.json',
+      workspace: 'C:/w',
+    });
   });
 
-  it('returns empty string when the file is missing or invalid', async () => {
-    fsMock.readFile.invoke.mockResolvedValue(null);
-    await expect(readTargetUrl('C:/w')).resolves.toBe('');
-    fsMock.readFile.invoke.mockResolvedValue('garbage');
+  it('falls back to project-agent.json when mission state is absent or invalid', async () => {
+    fsMock.readFile.invoke
+      .mockResolvedValueOnce('not valid state')
+      .mockResolvedValueOnce('{"target_url": "https://legacy.example"}');
+    await expect(readTargetUrl('C:/w')).resolves.toBe('https://legacy.example');
+    expect(fsMock.readFile.invoke).toHaveBeenNthCalledWith(1, {
+      path: 'C:/w/.aion/mission/state.json',
+      workspace: 'C:/w',
+    });
+    expect(fsMock.readFile.invoke).toHaveBeenNthCalledWith(2, {
+      path: 'C:/w/project-agent.json',
+      workspace: 'C:/w',
+    });
+  });
+
+  it('returns empty string when both mission state and legacy config are missing or invalid', async () => {
+    fsMock.readFile.invoke.mockResolvedValueOnce(null).mockResolvedValueOnce('garbage');
     await expect(readTargetUrl('C:/w')).resolves.toBe('');
   });
 
-  it('writes serialized JSON through /api/fs/write', async () => {
+  it('reads mission state independently and returns null when it cannot be parsed', async () => {
+    fsMock.readFile.invoke.mockResolvedValueOnce('{"objective":"Executar missão"}');
+    await expect(readMissionState('C:/w')).resolves.toEqual({ objective: 'Executar missão' });
+    expect(fsMock.readFile.invoke).toHaveBeenCalledWith({
+      path: 'C:/w/.aion/mission/state.json',
+      workspace: 'C:/w',
+    });
+
+    fsMock.readFile.invoke.mockResolvedValueOnce('invalid');
+    await expect(readMissionState('C:/w')).resolves.toBeNull();
+  });
+
+  it('writes mission state through /api/fs/write', async () => {
+    fsMock.writeFile.invoke.mockResolvedValue(true);
+    await writeMissionState('C:/w', { objective: 'Executar missão', plan: [] });
+    expect(fsMock.writeFile.invoke).toHaveBeenCalledWith({
+      path: 'C:/w/.aion/mission/state.json',
+      data: '{\n  "objective": "Executar missão",\n  "plan": []\n}\n',
+      workspace: 'C:/w',
+    });
+  });
+
+  it('writes serialized legacy JSON through /api/fs/write', async () => {
     fsMock.writeFile.invoke.mockResolvedValue(true);
     await saveTargetUrl('C:/w', 'https://a.b');
     expect(fsMock.writeFile.invoke).toHaveBeenCalledWith({
@@ -84,6 +132,10 @@ describe('loadProjectAgentContext', () => {
     fsMock.readFile.invoke.mockResolvedValue('{"target_url": "https://sys"}');
     const ctx = await loadProjectAgentContext(conversation('C:/w', 'p1'));
     expect(projectMock.get.invoke).toHaveBeenCalledWith({ project_id: 'p1' });
+    expect(fsMock.readFile.invoke).toHaveBeenCalledWith({
+      path: 'C:/w/.aion/mission/state.json',
+      workspace: 'C:/w',
+    });
     expect(ctx).toEqual({
       project_id: 'p1',
       project_name: 'Obra Modelo',
