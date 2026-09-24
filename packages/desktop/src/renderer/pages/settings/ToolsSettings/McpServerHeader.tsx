@@ -1,6 +1,6 @@
 import type { IMcpServer } from '@/common/config/storage';
 import { Button, Dropdown, Menu, Popover, Tooltip } from '@arco-design/web-react';
-import { Check, CloseSmall, Info, LoadingOne, Refresh, Write, DeleteFour, SettingOne, Login } from '@icon-park/react';
+import { Check, CloseSmall, Info, LoadingOne, Refresh, Write, DeleteFour, SettingOne, Login, Toolkit } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { McpOAuthStatus } from '@/renderer/hooks/mcp/useMcpOAuth';
@@ -10,6 +10,8 @@ import { formatDateTime } from '@/renderer/services/i18n/format';
 
 interface McpServerHeaderProps {
   server: IMcpServer;
+  toolCount?: number;
+  providerLabel?: string;
   isTestingConnection: boolean;
   oauthStatus?: McpOAuthStatus;
   isLoggingIn?: boolean;
@@ -138,6 +140,12 @@ const getStatusText = (
     return t?.('settings.mcpAuthenticated') || 'Authenticated';
   }
 
+  if (!last_test_status) {
+    return server.enabled
+      ? t?.('settings.toolStatusConfigured', { defaultValue: 'Configured' })
+      : t?.('settings.toolStatusNotConfigured', { defaultValue: 'Not configured' });
+  }
+
   return t?.('settings.mcpDisconnected') || 'Not tested';
 };
 
@@ -146,6 +154,8 @@ const supportsOAuth = (server: IMcpServer) =>
 
 const McpServerHeader: React.FC<McpServerHeaderProps> = ({
   server,
+  toolCount,
+  providerLabel,
   isTestingConnection,
   oauthStatus,
   isLoggingIn,
@@ -168,7 +178,16 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({
   return (
     <div className='flex items-center justify-between group'>
       <div className='flex items-center gap-2'>
+        <span className='text-t-tertiary'>
+          <Toolkit theme='outline' size='16' />
+        </span>
         <span>{server.name}</span>
+        {toolCount !== undefined && (
+          <span className='text-11px text-t-tertiary'>
+            {toolCount} {t('settings.toolsCount', { defaultValue: 'tools' })}
+          </span>
+        )}
+        {providerLabel && <span className='text-11px text-t-tertiary'>{providerLabel}</span>}
         {statusPopoverContent ? (
           <Popover content={statusPopoverContent} trigger='hover' position='top'>
             <span className='flex items-center cursor-default'>{statusIcon}</span>

@@ -243,7 +243,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               onClick={() => navigateFromSider('/settings/skills')}
             />
             <SiderNavEntry
-              label={t('agentTasks.plugins')}
+              label={t('settings.tools', { defaultValue: 'Tools' })}
               icon={<Puzzle theme='outline' size='16' fill='currentColor' />}
               isActive={pathname.startsWith('/settings/tools')}
               collapsed={collapsed}

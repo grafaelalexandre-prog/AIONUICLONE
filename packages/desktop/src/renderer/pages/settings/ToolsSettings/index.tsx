@@ -25,8 +25,8 @@ const ToolsSettings: React.FC = () => {
         <SettingsPageHeader
           data-testid='tools-header'
           title={t('settings.tools', { defaultValue: 'Tools' })}
-          description={t('settings.toolsDescription', {
-            defaultValue: 'Configure MCP servers and built-in tools such as image generation.',
+          description={t('settings.toolsCatalogDescription', {
+            defaultValue: 'Catalog the MCP tools your agents can use, with real connection and discovery status.',
           })}
         />
         <ToolsModalContent />

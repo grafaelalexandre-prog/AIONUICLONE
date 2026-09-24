@@ -16,9 +16,9 @@ import { useTranslation } from 'react-i18next';
 import useConfigModelListWithImage from '@/renderer/hooks/agent/useConfigModelListWithImage';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import AionSelect from '@/renderer/components/base/AionSelect';
-import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
 import AddMcpServerModal from '@/renderer/pages/settings/components/AddMcpServerModal';
-import McpServerItem from '@/renderer/pages/settings/ToolsSettings/McpServerItem';
+import AddToolModal from '@/renderer/pages/settings/ToolsSettings/AddToolModal';
+import ToolCatalog from '@/renderer/pages/settings/ToolsSettings/ToolCatalog';
 import {
   useMcpServers,
   useMcpConnection,
@@ -50,8 +50,15 @@ const ModalMcpManagementSection: React.FC<{
   extensionMcpServers: IMcpServer[];
   setMcpServers: React.Dispatch<React.SetStateAction<IMcpServer[]>>;
   saveMcpServers: (serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => Promise<void>;
-  isPageMode?: boolean;
-}> = ({ message, mcpServers, extensionMcpServers, setMcpServers, saveMcpServers, isPageMode }) => {
+  isMcpServersLoading?: boolean;
+}> = ({
+  message,
+  mcpServers,
+  extensionMcpServers,
+  setMcpServers,
+  saveMcpServers,
+  isMcpServersLoading,
+}) => {
   const { t } = useTranslation();
   const { oauthStatus, loggingIn, checkOAuthStatus, markLoginRequired, clearLoginRequired, login } = useMcpOAuth();
   const visibleMcpServers = useMemo(
@@ -118,6 +125,18 @@ const ModalMcpManagementSection: React.FC<{
     [handleAddMcpServer, handleTestMcpConnection]
   );
 
+  const handleAddToolServer = useCallback(
+    async (serverData: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>) => {
+      const addedServer = await handleAddMcpServer(serverData);
+      if (!addedServer) {
+        throw new Error(t('settings.mcpImportFailed'));
+      }
+      void handleTestMcpConnection(addedServer, { notify: false });
+      return true;
+    },
+    [handleAddMcpServer, handleTestMcpConnection, t]
+  );
+
   const wrappedHandleEditMcpServer = useCallback(
     async (serverToEdit: IMcpServer | undefined, serverData: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>) => {
       const updatedServer = await handleEditMcpServer(serverToEdit, serverData);
@@ -140,6 +159,7 @@ const ModalMcpManagementSection: React.FC<{
   );
 
   const [importMode, setImportMode] = useState<'json' | 'oneclick'>('json');
+  const [showAddToolModal, setShowAddToolModal] = useState(false);
 
   useEffect(() => {
     const httpServers = mcpServers.filter(
@@ -158,84 +178,37 @@ const ModalMcpManagementSection: React.FC<{
     await handleDeleteMcpServer(serverToDelete);
   }, [serverToDelete, hideDeleteConfirm, handleDeleteMcpServer]);
 
-  const renderAddButton = () => {
-    return (
-      <TalkToButlerButton
-        label={t('settings.mcpAddServer')}
-        chatLabel={t('settings.talkToButler.addViaChat', { defaultValue: 'Add via chat' })}
-        prompt={t('settings.talkToButler.prompt.addMcp', { defaultValue: 'Help me set up an MCP server.' })}
-        extraActions={[
-          {
-            key: 'json',
-            label: t('settings.mcpImportFromJSON'),
-            onClick: () => {
-              setImportMode('json');
-              showAddMcpModal();
-            },
-          },
-          {
-            key: 'oneclick',
-            label: t('settings.mcpOneKeyImport'),
-            onClick: () => {
-              setImportMode('oneclick');
-              showAddMcpModal();
-            },
-          },
-        ]}
-      />
-    );
-  };
-
   return (
     <div className='flex flex-col gap-16px min-h-0'>
-      <div className='flex gap-8px items-center justify-between'>
-        <div className='text-14px text-t-primary'>{t('settings.mcpSettings')}</div>
-        <div>{renderAddButton()}</div>
-      </div>
+      <ToolCatalog
+        backendServers={visibleMcpServers}
+        extensionServers={extensionMcpServers}
+        isLoading={isMcpServersLoading}
+        isCollapsed={mcpCollapseKey}
+        testingServers={testingServers}
+        oauthStatus={oauthStatus}
+        loggingIn={loggingIn}
+        onToggleCollapse={toggleServerCollapse}
+        onTestConnection={handleTestMcpConnection}
+        onEditServer={showEditMcpModal}
+        onDeleteServer={showDeleteConfirm}
+        onOAuthLogin={handleOAuthLogin}
+        onAddTool={() => setShowAddToolModal(true)}
+        onImportJson={() => {
+          setImportMode('json');
+          showAddMcpModal();
+        }}
+        onImportOneClick={() => {
+          setImportMode('oneclick');
+          showAddMcpModal();
+        }}
+      />
 
-      <div className='flex-1 min-h-0'>
-        {visibleMcpServers.length === 0 && extensionMcpServers.length === 0 ? (
-          <div className='py-24px text-center text-t-secondary text-14px border border-dashed border-border-2 rd-12px'>
-            {t('settings.mcpNoServersFound')}
-          </div>
-        ) : (
-          <AionScrollArea
-            className={classNames('max-h-360px', isPageMode && 'max-h-none')}
-            disableOverflow={isPageMode}
-          >
-            <div className='space-y-12px'>
-              {visibleMcpServers.map((server) => (
-                <McpServerItem
-                  key={server.id}
-                  server={server}
-                  isCollapsed={mcpCollapseKey[server.id] || false}
-                  isTestingConnection={testingServers[server.id] || false}
-                  oauthStatus={oauthStatus[server.id]}
-                  isLoggingIn={loggingIn[server.id]}
-                  onToggleCollapse={() => toggleServerCollapse(server.id)}
-                  onTestConnection={handleTestMcpConnection}
-                  onEditServer={showEditMcpModal}
-                  onDeleteServer={showDeleteConfirm}
-                  onOAuthLogin={handleOAuthLogin}
-                />
-              ))}
-              {extensionMcpServers.map((server) => (
-                <McpServerItem
-                  key={server.id}
-                  server={server}
-                  isCollapsed={mcpCollapseKey[server.id] || false}
-                  isTestingConnection={false}
-                  onToggleCollapse={() => toggleServerCollapse(server.id)}
-                  onTestConnection={handleTestMcpConnection}
-                  onEditServer={() => {}}
-                  onDeleteServer={() => {}}
-                  isReadOnly
-                />
-              ))}
-            </div>
-          </AionScrollArea>
-        )}
-      </div>
+      <AddToolModal
+        visible={showAddToolModal}
+        onCancel={() => setShowAddToolModal(false)}
+        onSubmit={handleAddToolServer}
+      />
 
       <AddMcpServerModal
         visible={showMcpModal}
@@ -503,7 +476,6 @@ const ToolsModalContent: React.FC = () => {
                   extensionMcpServers={extensionMcpServers}
                   setMcpServers={setMcpServers}
                   saveMcpServers={saveMcpServers}
-                  isPageMode={isPageMode}
                 />
               </AionScrollArea>
             </div>
