@@ -9,14 +9,7 @@ import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { blurActiveElement } from '@renderer/utils/ui/focus';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
 import { BookOpen, Lightning, Puzzle, ViewGridList } from '@icon-park/react';
-import {
-  SiderToolbar,
-  SiderSearchEntry,
-  SiderScheduledEntry,
-  SiderAssistantEntry,
-  SiderAgentTasksEntry,
-  SiderNavEntry,
-} from './SiderNav';
+import { SiderToolbar, SiderSearchEntry, SiderScheduledEntry, SiderAssistantEntry, SiderNavEntry } from './SiderNav';
 import SiderFooter from './SiderFooter';
 import TeamSiderSection from './TeamSiderSection';
 import siderStyles from './Sider.module.css';
@@ -41,7 +34,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const { logout, status } = useAuth();
   const { theme, setTheme } = useThemeContext();
   const [isBatchMode, setIsBatchMode] = useState(false);
-  const isAgentTasks = pathname === '/agent-tasks';
   const isSettings = pathname.startsWith('/settings');
   const lastNonSettingsPathRef = useRef('/guid');
   const showLogout =
@@ -92,17 +84,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
     // keeps the preview open when switching between conversations of the same
     // scope and closes it only when the scope (today = workspace) actually changes.
     setIsBatchMode(false);
-  };
-
-  const handleAgentTasksClick = () => {
-    cleanupSiderTooltips();
-    blurActiveElement();
-    closePreview();
-    setIsBatchMode(false);
-    Promise.resolve(navigate('/agent-tasks')).catch((error) => {
-      console.error('Navigation failed:', error);
-    });
-    onSessionClick?.();
   };
 
   const handleScheduledClick = () => {
@@ -276,13 +257,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               collapsed={collapsed}
               siderTooltipProps={siderTooltipProps}
               onClick={handleScheduledClick}
-            />
-            <SiderAgentTasksEntry
-              isMobile={isMobile}
-              isActive={isAgentTasks}
-              collapsed={collapsed}
-              siderTooltipProps={siderTooltipProps}
-              onClick={handleAgentTasksClick}
             />
             <SiderNavEntry
               label={t('agentTasks.library')}
