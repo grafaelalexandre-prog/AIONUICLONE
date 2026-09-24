@@ -147,6 +147,7 @@ const ToolCatalog: React.FC<ToolCatalogProps> = ({
             const server = serversById.get(integration.connection.id);
             if (!server) return null;
             const isExtension = integration.source === 'extension-mcp';
+            const isReadOnly = isExtension || server.builtin === true;
             return (
               <McpServerItem
                 key={integration.id}
@@ -156,7 +157,7 @@ const ToolCatalog: React.FC<ToolCatalogProps> = ({
                 isTestingConnection={testingServers[server.id] || false}
                 oauthStatus={oauthStatus[server.id]}
                 isLoggingIn={loggingIn[server.id]}
-                isReadOnly={isExtension}
+                isReadOnly={isReadOnly}
                 selectedToolIds={selectedTools[integration.id]}
                 onToggleTool={(toolId) => handleToggleTool(integration.id, toolId)}
                 onToggleCollapse={() => onToggleCollapse(server.id)}

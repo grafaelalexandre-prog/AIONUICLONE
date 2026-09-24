@@ -61,10 +61,6 @@ const ModalMcpManagementSection: React.FC<{
 }) => {
   const { t } = useTranslation();
   const { oauthStatus, loggingIn, checkOAuthStatus, markLoginRequired, clearLoginRequired, login } = useMcpOAuth();
-  const visibleMcpServers = useMemo(
-    () => mcpServers.filter((server) => !isBuiltinImageGenServer(server)),
-    [mcpServers]
-  );
 
   const handleAuthRequired = useCallback(
     (server: IMcpServer) => {
@@ -181,7 +177,7 @@ const ModalMcpManagementSection: React.FC<{
   return (
     <div className='flex flex-col gap-16px min-h-0'>
       <ToolCatalog
-        backendServers={visibleMcpServers}
+        backendServers={mcpServers}
         extensionServers={extensionMcpServers}
         isLoading={isMcpServersLoading}
         isCollapsed={mcpCollapseKey}
