@@ -18,5 +18,10 @@
   "conversationLabel": "会話",
   "deleteAria": "タスクを削除",
   "deleteConfirm": "このタスクを削除してもよろしいですか？",
-  "unavailable": "タスク API が利用できません"
+  "unavailable": "タスク API が利用できません",
+  "statusCancelled": "Cancelled",
+  "cancelAria": "Cancel task",
+  "cancelConfirm": "Cancel this task?",
+  "cancelSuccess": "Task cancelled",
+  "cancelError": "Could not cancel task"
 }

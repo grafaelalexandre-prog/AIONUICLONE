@@ -18,5 +18,10 @@
   "conversationLabel": "대화",
   "deleteAria": "작업 삭제",
   "deleteConfirm": "이 작업을 삭제하시겠습니까?",
-  "unavailable": "작업 API를 사용할 수 없습니다"
+  "unavailable": "작업 API를 사용할 수 없습니다",
+  "statusCancelled": "Cancelled",
+  "cancelAria": "Cancel task",
+  "cancelConfirm": "Cancel this task?",
+  "cancelSuccess": "Task cancelled",
+  "cancelError": "Could not cancel task"
 }

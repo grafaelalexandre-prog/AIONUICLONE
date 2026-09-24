@@ -18,5 +18,10 @@
   "conversationLabel": "对话",
   "deleteAria": "删除任务",
   "deleteConfirm": "您确定要删除此任务吗？",
-  "unavailable": "任务API不可用"
+  "unavailable": "任务API不可用",
+  "statusCancelled": "Cancelled",
+  "cancelAria": "Cancel task",
+  "cancelConfirm": "Cancel this task?",
+  "cancelSuccess": "Task cancelled",
+  "cancelError": "Could not cancel task"
 }

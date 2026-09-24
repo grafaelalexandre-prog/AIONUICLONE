@@ -4,15 +4,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
 import AionModal from '@/renderer/components/base/AionModal';
+import { addRecentWorkspace } from '@/renderer/components/workspace';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useCronJobsMap } from '@/renderer/pages/cron';
 import { restrictToVerticalAxis } from '@/renderer/utils/ui/dndModifiers';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Button, Dropdown, Empty, Input, Menu, Modal, Tooltip } from '@arco-design/web-react';
-import { FolderClose, MoreOne, Plus, Right } from '@icon-park/react';
+import { DeleteOne, FolderClose, MoreOne, Plus, Right } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -87,6 +89,15 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     [collapsedSections, toggleSection]
   );
 
+  const handleAddProjectTask = useCallback(async () => {
+    const files = await ipcBridge.dialog.showOpen.invoke({ properties: ['openDirectory', 'createDirectory'] });
+    const workspace = files?.[0];
+    if (!workspace) return;
+    addRecentWorkspace(workspace);
+    await navigate('/guid', { state: { workspace } });
+    onSessionClick?.();
+  }, [navigate, onSessionClick]);
+
   // Sync active conversation ref when route changes (for URL navigation)
   // This doesn't trigger state update, avoiding double render
   useEffect(() => {
@@ -121,6 +132,8 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     handleOpenMenu,
     handleToggleManualUnread,
     handleCreateCronTask,
+    handleDeleteConversation,
+    handleDeleteProjectGroup,
     handleArchiveProject,
     archiveProjectTarget,
     archiveProjectLoading,
@@ -180,6 +193,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       onEditStart: handleEditStart,
       onCreateCronTask: handleCreateCronTask,
       onArchive: handleArchive,
+      onDelete: handleDeleteConversation,
       onTogglePin: handleTogglePin,
       onToggleManualUnread: handleToggleManualUnread,
       getJobStatus,
@@ -203,6 +217,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       handleEditStart,
       handleCreateCronTask,
       handleArchive,
+      handleDeleteConversation,
       handleTogglePin,
       handleToggleManualUnread,
       getJobStatus,
@@ -416,7 +431,24 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
         {/* L1: Projects section — workspace folders, peer to conversations */}
         {projectGroups.length > 0 && (
           <div className='min-w-0'>
-            {!collapsed && <SectionLabel sectionKey='projects' label={t('conversation.history.projectsSection')} />}
+            {!collapsed && (
+              <SectionLabel
+                sectionKey='projects'
+                label={t('conversation.history.projectsSection')}
+                trailing={
+                  <Tooltip content={t('conversation.history.newTaskInFolder')} position='bottom'>
+                    <button
+                      type='button'
+                      aria-label={t('conversation.history.newTaskInFolder')}
+                      className='flex size-20px items-center justify-center rounded-4px text-t-tertiary transition-colors hover:bg-fill-3 hover:text-t-primary'
+                      onClick={() => void handleAddProjectTask()}
+                    >
+                      <Plus theme='outline' size='13' fill='currentColor' />
+                    </button>
+                  </Tooltip>
+                }
+              />
+            )}
             {!collapsedSections.has('projects') &&
               projectGroups.map((group) => {
                 const projectMenu = (
@@ -425,12 +457,21 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                       if (key === 'archive') {
                         handleArchiveProject(group.displayName, group.conversations);
                       }
+                      if (key === 'delete') {
+                        handleDeleteProjectGroup(group.conversations);
+                      }
                     }}
                   >
                     <Menu.Item key='archive'>
                       <span className='flex items-center gap-8px'>
                         <FolderClose theme='outline' size='14' />
                         {t('conversation.history.archiveProject')}
+                      </span>
+                    </Menu.Item>
+                    <Menu.Item key='delete'>
+                      <span className='flex items-center gap-8px text-danger-6'>
+                        <DeleteOne theme='outline' size='14' />
+                        {t('conversation.history.deleteProjectGroup')}
                       </span>
                     </Menu.Item>
                   </Menu>
@@ -456,8 +497,8 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                               tabIndex={0}
                               aria-label={t('conversation.history.newConversationInProject')}
                               className={classNames(
-                                'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px sider-action-btn',
-                                isMobile ? 'flex' : 'hidden group-hover:flex'
+                                'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px sider-action-btn opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto',
+                                { 'opacity-100 pointer-events-auto': isMobile }
                               )}
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -482,10 +523,20 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                             unmountOnExit={false}
                           >
                             <span
-                              aria-label='Project actions'
+                              role='button'
+                              tabIndex={0}
+                              aria-label={`${group.displayName} — ${t('conversation.history.projectsSection')}`}
+                              aria-haspopup='menu'
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  e.currentTarget.click();
+                                }
+                              }}
                               className={classNames(
-                                'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px sider-action-btn',
-                                isMobile ? 'flex' : 'hidden group-hover:flex'
+                                'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px sider-action-btn opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto',
+                                { 'opacity-100 pointer-events-auto': isMobile }
                               )}
                               onClick={(e) => e.stopPropagation()}
                             >

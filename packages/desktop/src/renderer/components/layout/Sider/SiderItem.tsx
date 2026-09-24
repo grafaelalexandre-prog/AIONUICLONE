@@ -94,10 +94,10 @@ const SiderItem: React.FC<SiderItemProps> = ({
         {/* Hover/active actions: three-dot menu */}
         {hasMenu && (
           <div
-            className={classNames('absolute end-8px top-1/2 -translate-y-1/2 items-center justify-end', {
-              flex: isMobile || menuVisible,
-              'hidden group-hover:flex': !isMobile && !menuVisible,
-            })}
+            className={classNames(
+              'absolute end-8px top-1/2 -translate-y-1/2 flex items-center justify-end opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto',
+              { 'opacity-100 pointer-events-auto': isMobile || menuVisible }
+            )}
             onClick={(e) => e.stopPropagation()}
           >
             <Dropdown
@@ -131,16 +131,22 @@ const SiderItem: React.FC<SiderItemProps> = ({
             >
               <span
                 data-testid='sider-item-menu-trigger'
-                className={classNames(
-                  'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px sider-action-btn',
-                  {
-                    flex: isMobile || menuVisible,
-                    'hidden group-hover:flex': !isMobile && !menuVisible,
-                  }
-                )}
+                role='button'
+                tabIndex={0}
+                aria-label={name}
+                aria-haspopup='menu'
+                aria-expanded={menuVisible}
+                className='flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px sider-action-btn'
                 onClick={(e) => {
                   e.stopPropagation();
                   setMenuVisible(true);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setMenuVisible(true);
+                  }
                 }}
               >
                 <MoreOne theme='outline' size='14' fill='currentColor' className='block leading-none' />

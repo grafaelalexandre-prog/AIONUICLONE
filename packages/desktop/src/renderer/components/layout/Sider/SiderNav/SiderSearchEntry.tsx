@@ -33,6 +33,7 @@ const SiderSearchEntry: React.FC<SiderSearchEntryProps> = ({
       <Tooltip {...siderTooltipProps} content={t('conversation.historySearch.tooltip')} position='right'>
         <div className='w-full'>
           <ConversationSearchPopover
+            registerShortcut={false}
             onSessionClick={onSessionClick}
             onConversationSelect={onConversationSelect}
             label={t('conversation.historySearch.shortTitle')}
@@ -47,6 +48,7 @@ const SiderSearchEntry: React.FC<SiderSearchEntryProps> = ({
     <Tooltip {...siderTooltipProps} content={t('conversation.historySearch.tooltip')} position='right'>
       <div className='w-full'>
         <ConversationSearchPopover
+          registerShortcut={false}
           onSessionClick={onSessionClick}
           onConversationSelect={onConversationSelect}
           label={t('conversation.historySearch.shortTitle')}

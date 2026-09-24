@@ -5,7 +5,9 @@
  */
 
 import React from 'react';
+import useSWR from 'swr';
 import { useTranslation } from 'react-i18next';
+import { ipcBridge } from '@/common';
 import { Tooltip } from '@arco-design/web-react';
 import { ArrowCircleLeft, CloseOne, Moon, SettingTwo, SunOne } from '@icon-park/react';
 import classNames from 'classnames';
@@ -36,6 +38,9 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
   onLogoutClick,
 }) => {
   const { t } = useTranslation();
+  const { data: currentUser } = useSWR('sider.current-user', () => ipcBridge.auth.currentUser.invoke(), {
+    shouldRetryOnError: false,
+  });
 
   const settingsIcon = isSettings ? (
     <ArrowCircleLeft
@@ -59,7 +64,21 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
 
   return (
     <div className='shrink-0 sider-footer mt-auto pt-8px pb-8px border-t border-solid border-[var(--color-border-2)] border-s-0 border-e-0 border-b-0'>
-      <div className={classNames('flex', collapsed ? 'flex-col gap-2px' : 'items-center gap-2px')}>
+      <div className='flex flex-col items-stretch gap-2px'>
+        {currentUser && (
+          <div
+            className={classNames(
+              'flex h-34px items-center rounded-8px text-t-primary',
+              collapsed ? 'w-full justify-center' : 'w-full gap-8px px-10px'
+            )}
+            title={currentUser.username}
+          >
+            <span className='size-24px flex items-center justify-center rounded-full bg-fill-3 text-11px font-[600] uppercase text-t-secondary shrink-0'>
+              {currentUser.username.slice(0, 1)}
+            </span>
+            {!collapsed && <span className='min-w-0 flex-1 truncate text-13px font-[500]'>{currentUser.username}</span>}
+          </div>
+        )}
         <Tooltip {...siderTooltipProps} content={isSettings ? t('common.back') : t('common.settings')} position='right'>
           <div
             onClick={onSettingsClick}

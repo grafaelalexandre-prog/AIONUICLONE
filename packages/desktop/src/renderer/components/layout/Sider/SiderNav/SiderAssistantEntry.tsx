@@ -30,7 +30,7 @@ const SiderAssistantEntry: React.FC<SiderAssistantEntryProps> = ({
 
   if (collapsed) {
     return (
-      <Tooltip {...siderTooltipProps} content={t('settings.assistants')} position='right'>
+      <Tooltip {...siderTooltipProps} content={t('agentTasks.agentLabel')} position='right'>
         <div
           className={classNames(
             'w-full h-34px flex items-center justify-center cursor-pointer transition-colors rd-8px text-t-primary',
@@ -70,7 +70,7 @@ const SiderAssistantEntry: React.FC<SiderAssistantEntryProps> = ({
           />
         </span>
         <span className='collapsed-hidden text-t-primary text-14px font-[500] leading-24px'>
-          {t('settings.assistants')}
+          {t('agentTasks.agentLabel')}
         </span>
       </div>
     </Tooltip>

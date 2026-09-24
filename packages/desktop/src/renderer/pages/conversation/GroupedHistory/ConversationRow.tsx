@@ -15,6 +15,7 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Checkbox, Dropdown, Menu, Spin, Tooltip } from '@arco-design/web-react';
 import {
   Attention,
+  DeleteOne,
   EditOne,
   Export,
   FolderClose,
@@ -59,6 +60,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     onEditStart,
     onCreateCronTask,
     onArchive,
+    onDelete,
     onExport,
     onTogglePin,
     onToggleManualUnread,
@@ -256,10 +258,9 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
         {!batchMode && (
           <div
             className={classNames(
-              'absolute end-8px top-1/2 -translate-y-1/2 items-center justify-end !collapsed-hidden',
+              'absolute end-8px top-1/2 -translate-y-1/2 flex items-center justify-end !collapsed-hidden opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto',
               {
-                flex: isMobile || menuVisible,
-                'hidden group-hover:flex': !isMobile && !menuVisible,
+                'opacity-100 pointer-events-auto': isMobile || menuVisible,
               }
             )}
             onClick={(event) => {
@@ -292,6 +293,10 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                     }
                     if (key === 'archive') {
                       onArchive(conversation);
+                      return;
+                    }
+                    if (key === 'delete') {
+                      onDelete(conversation);
                     }
                   }}
                 >
@@ -335,6 +340,12 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                       <span>{t('conversation.history.archive')}</span>
                     </div>
                   </Menu.Item>
+                  <Menu.Item key='delete'>
+                    <div className='flex items-center gap-8px text-danger-6'>
+                      <DeleteOne theme='outline' size='14' />
+                      <span>{t('common.delete')}</span>
+                    </div>
+                  </Menu.Item>
                 </Menu>
               }
               trigger='click'
@@ -346,16 +357,22 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
             >
               <span
                 data-testid={`conversation-row-menu-${conversation.id}`}
-                className={classNames(
-                  'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px sider-action-btn',
-                  {
-                    flex: isMobile || menuVisible,
-                    'hidden group-hover:flex': !isMobile && !menuVisible,
-                  }
-                )}
+                role='button'
+                tabIndex={0}
+                aria-label={conversation.name || t('conversation.history.conversationsSection')}
+                aria-haspopup='menu'
+                aria-expanded={menuVisible}
+                className='flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px sider-action-btn'
                 onClick={(event) => {
                   event.stopPropagation();
                   onOpenMenu(conversation);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onOpenMenu(conversation);
+                  }
                 }}
               >
                 <MoreOne theme='outline' size='14' fill='currentColor' className='block leading-none' />

@@ -18,5 +18,10 @@
   "conversationLabel": "Conversación",
   "deleteAria": "Eliminar tarea",
   "deleteConfirm": "¿Estás seguro de que deseas eliminar esta tarea?",
-  "unavailable": "API de tareas no disponible"
+  "unavailable": "API de tareas no disponible",
+  "statusCancelled": "Cancelled",
+  "cancelAria": "Cancel task",
+  "cancelConfirm": "Cancel this task?",
+  "cancelSuccess": "Task cancelled",
+  "cancelError": "Could not cancel task"
 }

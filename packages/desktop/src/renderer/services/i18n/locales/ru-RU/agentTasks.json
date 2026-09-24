@@ -18,5 +18,10 @@
   "conversationLabel": "Разговор",
   "deleteAria": "Удалить задание",
   "deleteConfirm": "Вы уверены, что хотите удалить это задание?",
-  "unavailable": "API для работы недоступна"
+  "unavailable": "API для работы недоступна",
+  "statusCancelled": "Cancelled",
+  "cancelAria": "Cancel task",
+  "cancelConfirm": "Cancel this task?",
+  "cancelSuccess": "Task cancelled",
+  "cancelError": "Could not cancel task"
 }

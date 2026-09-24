@@ -34,7 +34,7 @@ const SiderToolbar: React.FC<SiderToolbarProps> = ({
   if (collapsed) {
     return (
       <div className='shrink-0 flex flex-col items-center gap-2px w-full'>
-        <Tooltip {...siderTooltipProps} content={t('conversation.welcome.newConversation')} position='right'>
+        <Tooltip {...siderTooltipProps} content={t('agentTasks.newTask')} position='right'>
           <div
             className={classNames(
               'w-full h-34px flex items-center justify-center cursor-pointer transition-colors text-t-primary rd-8px hover:bg-fill-3 active:bg-fill-4',
@@ -76,7 +76,7 @@ const SiderToolbar: React.FC<SiderToolbarProps> = ({
             />
           </span>
           <span className='collapsed-hidden text-t-primary text-14px font-[500] leading-24px'>
-            {t('conversation.welcome.newConversation')}
+            {t('agentTasks.newTask')}
           </span>
         </div>
       </Tooltip>

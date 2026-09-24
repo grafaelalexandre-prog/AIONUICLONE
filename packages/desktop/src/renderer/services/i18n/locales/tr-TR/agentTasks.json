@@ -18,5 +18,10 @@
   "conversationLabel": "Konuşma",
   "deleteAria": "Görev sil",
   "deleteConfirm": "Bu görevi silmek istediğinizden emin misiniz?",
-  "unavailable": "Görev API'si kullanılamıyor"
+  "unavailable": "Görev API'si kullanılamıyor",
+  "statusCancelled": "Cancelled",
+  "cancelAria": "Cancel task",
+  "cancelConfirm": "Cancel this task?",
+  "cancelSuccess": "Task cancelled",
+  "cancelError": "Could not cancel task"
 }

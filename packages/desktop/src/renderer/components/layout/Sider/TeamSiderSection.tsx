@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { EditOne, FolderClose, Peoples, Plus, Pushpin, Right } from '@icon-park/react';
+import { DeleteOne, EditOne, FolderClose, Peoples, Plus, Pushpin, Right } from '@icon-park/react';
 import { Input, Message, Modal, Spin, Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -41,7 +41,7 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { teams, mutate: refreshTeams } = useTeamList();
+  const { teams, mutate: refreshTeams, removeTeam } = useTeamList();
   const teamBadgeCounts = useSiderTeamBadges(teams);
   const isTeamRunning = useSiderTeamRunning(teams);
   const { mutate: globalMutate } = useSWRConfig();
@@ -126,6 +126,34 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
       }
     },
     [refreshTeams, t]
+  );
+
+  const handleDeleteTeam = useCallback(
+    (team_id: string) => {
+      Modal.confirm({
+        title: t('team.sider.deleteConfirm'),
+        content: t('team.sider.deleteConfirmContent'),
+        okText: t('team.sider.deleteOk'),
+        cancelText: t('team.sider.deleteCancel'),
+        okButtonProps: { status: 'danger' },
+        onOk: async () => {
+          try {
+            await removeTeam(team_id);
+            Message.success(t('team.sider.deleteSuccess'));
+            if (window.location.hash.includes(`/team/${team_id}`)) {
+              window.location.hash = '#/';
+            }
+          } catch (err) {
+            console.error('Failed to delete team:', err);
+            Message.error(t('team.sider.deleteFailed'));
+          }
+        },
+        style: { borderRadius: '12px' },
+        alignCenter: true,
+        getPopupContainer: () => document.body,
+      });
+    },
+    [removeTeam, t]
   );
 
   return (
@@ -235,6 +263,12 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
                   icon: <FolderClose theme='outline' size='14' />,
                   label: t('team.sider.archive'),
                 },
+                {
+                  key: 'delete',
+                  icon: <DeleteOne theme='outline' size='14' />,
+                  label: t('team.sider.delete'),
+                  danger: true,
+                },
               ];
               const teamBadge = teamBadgeCounts.get(team.id) ?? 0;
               const isRunning = isTeamRunning(team.id);
@@ -269,6 +303,8 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
                         setRenameVisible(true);
                       } else if (key === 'archive') {
                         void handleArchiveTeam(team.id);
+                      } else if (key === 'delete') {
+                        handleDeleteTeam(team.id);
                       }
                     }}
                     onClick={() => handleTeamClick(team.id)}

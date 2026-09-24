@@ -1,5 +1,6 @@
 import classNames from 'classnames';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { usePreviewContext } from '@renderer/pages/conversation/Preview/context/PreviewContext';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
@@ -7,13 +8,8 @@ import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { blurActiveElement } from '@renderer/utils/ui/focus';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
-import {
-  SiderToolbar,
-  SiderSearchEntry,
-  SiderScheduledEntry,
-  SiderAssistantEntry,
-  SiderAgentTasksEntry,
-} from './SiderNav';
+import { BookOpen, Lightning, Puzzle, ViewGridList } from '@icon-park/react';
+import { SiderToolbar, SiderSearchEntry, SiderScheduledEntry, SiderAssistantEntry, SiderNavEntry } from './SiderNav';
 import SiderFooter from './SiderFooter';
 import TeamSiderSection from './TeamSiderSection';
 import siderStyles from './Sider.module.css';
@@ -29,6 +25,7 @@ interface SiderProps {
 const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
+  const { t } = useTranslation();
   const location = useLocation();
   const { pathname, search, hash } = location;
 
@@ -37,7 +34,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const { logout, status } = useAuth();
   const { theme, setTheme } = useThemeContext();
   const [isBatchMode, setIsBatchMode] = useState(false);
-  const isAgentTasks = pathname === '/agent-tasks';
   const isSettings = pathname.startsWith('/settings');
   const lastNonSettingsPathRef = useRef('/guid');
   const showLogout =
@@ -90,18 +86,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
     setIsBatchMode(false);
   };
 
-  const handleAgentTasksClick = () => {
-    cleanupSiderTooltips();
-    blurActiveElement();
-    setIsBatchMode(false);
-    Promise.resolve(navigate('/agent-tasks')).catch((error) => {
-      console.error('Navigation failed:', error);
-    });
-    if (onSessionClick) {
-      onSessionClick();
-    }
-  };
-
   const handleScheduledClick = () => {
     cleanupSiderTooltips();
     blurActiveElement();
@@ -126,6 +110,17 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
     if (onSessionClick) {
       onSessionClick();
     }
+  };
+
+  const navigateFromSider = (path: string) => {
+    cleanupSiderTooltips();
+    blurActiveElement();
+    closePreview();
+    setIsBatchMode(false);
+    Promise.resolve(navigate(path)).catch((error) => {
+      console.error('Navigation failed:', error);
+    });
+    onSessionClick?.();
   };
 
   const handleQuickThemeToggle = () => {
@@ -192,14 +187,21 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
 
   return (
     <div className='size-full flex flex-col'>
-      {/* Main content area */}
-      <div className='flex-1 min-h-0 overflow-hidden'>
+      {/* One scroll surface keeps navigation, tasks, teams, projects and conversations together. */}
+      <div
+        data-testid='sider-scroll-region'
+        className={classNames(
+          'flex-1 min-h-0',
+          isSettings ? 'overflow-hidden' : 'overflow-y-auto overscroll-contain',
+          !isSettings && siderStyles.scrollArea
+        )}
+      >
         {isSettings ? (
           <Suspense fallback={<div className='size-full' />}>
             <SettingsSider collapsed={collapsed} tooltipEnabled={tooltipEnabled} />
           </Suspense>
         ) : (
-          <div className='size-full flex flex-col gap-2px'>
+          <div className='min-h-full flex flex-col gap-2px'>
             <SiderToolbar
               isMobile={isMobile}
               isBatchMode={isBatchMode}
@@ -208,18 +210,13 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               onNewChat={handleNewChat}
               onToggleBatchMode={() => setIsBatchMode((prev) => !prev)}
             />
-            {/* Search entry — desktop moves this into the titlebar toolbar;
-                mobile keeps it here in the sidebar. */}
-            {isMobile && (
-              <SiderSearchEntry
-                isMobile={isMobile}
-                collapsed={collapsed}
-                siderTooltipProps={siderTooltipProps}
-                onConversationSelect={handleConversationSelect}
-                onSessionClick={onSessionClick}
-              />
-            )}
-            {/* Assistant nav entry - fixed above Scheduled */}
+            <SiderSearchEntry
+              isMobile={isMobile}
+              collapsed={collapsed}
+              siderTooltipProps={siderTooltipProps}
+              onConversationSelect={handleConversationSelect}
+              onSessionClick={onSessionClick}
+            />
             <SiderAssistantEntry
               isMobile={isMobile}
               isActive={pathname.startsWith('/assistants')}
@@ -227,7 +224,33 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               siderTooltipProps={siderTooltipProps}
               onClick={handleAssistantClick}
             />
-            {/* Scheduled tasks nav entry - fixed above scroll */}
+            <SiderNavEntry
+              label={t('agentTasks.kanban.title', { defaultValue: 'Kanban' })}
+              icon={<ViewGridList theme='outline' size='16' fill='currentColor' />}
+              isActive={pathname.startsWith('/kanban')}
+              collapsed={collapsed}
+              isMobile={isMobile}
+              siderTooltipProps={siderTooltipProps}
+              onClick={() => navigateFromSider('/kanban')}
+            />
+            <SiderNavEntry
+              label={t('common.skills')}
+              icon={<Lightning theme='outline' size='16' fill='currentColor' />}
+              isActive={pathname.startsWith('/settings/skills')}
+              collapsed={collapsed}
+              isMobile={isMobile}
+              siderTooltipProps={siderTooltipProps}
+              onClick={() => navigateFromSider('/settings/skills')}
+            />
+            <SiderNavEntry
+              label={t('agentTasks.plugins')}
+              icon={<Puzzle theme='outline' size='16' fill='currentColor' />}
+              isActive={pathname.startsWith('/settings/tools')}
+              collapsed={collapsed}
+              isMobile={isMobile}
+              siderTooltipProps={siderTooltipProps}
+              onClick={() => navigateFromSider('/settings/tools')}
+            />
             <SiderScheduledEntry
               isMobile={isMobile}
               isActive={pathname === '/scheduled'}
@@ -235,23 +258,24 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               siderTooltipProps={siderTooltipProps}
               onClick={handleScheduledClick}
             />
-            {/* Agent tasks nav entry - new */}
-            <SiderAgentTasksEntry
-              isMobile={isMobile}
-              isActive={isAgentTasks}
+            <SiderNavEntry
+              label={t('agentTasks.library')}
+              icon={<BookOpen theme='outline' size='16' fill='currentColor' />}
+              trailing={<span className='text-11px text-t-tertiary'>{t('common.comingSoon')}</span>}
+              disabled
               collapsed={collapsed}
+              isMobile={isMobile}
               siderTooltipProps={siderTooltipProps}
-              onClick={handleAgentTasksClick}
             />
-            {/* Divider between fixed top nav and scrollable content area */}
+            {/* Divider between fixed navigation and conversation history. */}
             <div
               className={classNames(
                 'shrink-0 mt-6px mb-2px h-1px bg-[var(--color-border-2)]',
                 collapsed ? 'mx-6px' : 'mx-10px'
               )}
             />
-            {/* Scrollable content: pinned → team (slot) → projects → conversations */}
-            <div className={classNames('flex-1 min-h-0 overflow-y-auto', siderStyles.scrollArea)}>
+            {/* History continues in the same scroll surface as the fixed navigation above. */}
+            <div className='shrink-0'>
               <Suspense fallback={<div className='min-h-200px' />}>
                 <WorkspaceGroupedHistory
                   {...workspaceHistoryProps}

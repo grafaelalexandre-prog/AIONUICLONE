@@ -100,6 +100,8 @@ interface ConversationSearchPopoverProps {
   label?: string;
   fullWidth?: boolean;
   renderTrigger?: (props: { onClick: () => void; isActive: boolean }) => React.ReactNode;
+  /** Only one mounted search trigger should own the global shortcut. */
+  registerShortcut?: boolean;
 }
 
 const ConversationAgentMark: React.FC<{ conversation: IMessageSearchItem['conversation'] }> = ({ conversation }) => {
@@ -138,6 +140,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
   label,
   fullWidth = false,
   renderTrigger,
+  registerShortcut = true,
 }) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -304,11 +307,12 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
   }, [disabled]);
 
   useEffect(() => {
+    if (!registerShortcut) return;
+
     const handleGlobalSearchShortcut = (event: KeyboardEvent) => {
       if (
         !isPrimaryApplicationShortcut(event, {
-          key: 'f',
-          shiftKey: true,
+          key: 'k',
           targetGuard: 'embedded-editor',
         })
       ) {
@@ -325,7 +329,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
     return () => {
       document.removeEventListener('keydown', handleGlobalSearchShortcut, true);
     };
-  }, [disabled, handleOpen]);
+  }, [disabled, handleOpen, registerShortcut]);
 
   const triggerAriaLabel = t('conversation.historySearch.tooltip');
 

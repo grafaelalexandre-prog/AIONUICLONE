@@ -18,5 +18,10 @@
   "conversationLabel": "Konversation",
   "deleteAria": "Aufgabe löschen",
   "deleteConfirm": "Möchten Sie diese Aufgabe wirklich löschen?",
-  "unavailable": "Keine Task-API verfügbar"
+  "unavailable": "Keine Task-API verfügbar",
+  "statusCancelled": "Cancelled",
+  "cancelAria": "Cancel task",
+  "cancelConfirm": "Cancel this task?",
+  "cancelSuccess": "Task cancelled",
+  "cancelError": "Could not cancel task"
 }

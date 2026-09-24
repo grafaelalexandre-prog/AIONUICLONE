@@ -16,6 +16,7 @@
     "renameCancel": "Cancel",
     "renameSuccess": "Team renamed",
     "deleteSuccess": "Team deleted",
+    "deleteFailed": "Failed to delete team",
     "archive": "Archive",
     "archiveSuccess": "Team archived",
     "archiveFailed": "Failed to archive team"

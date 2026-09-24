@@ -18,5 +18,10 @@
   "conversationLabel": "گفتگو",
   "deleteAria": "حذف وظیفه",
   "deleteConfirm": "آیا مطمئن هستید که می‌خواهید این وظیفه را حذف کنید؟",
-  "unavailable": "API وظیفه در دسترس نیست"
+  "unavailable": "API وظیفه در دسترس نیست",
+  "statusCancelled": "Cancelled",
+  "cancelAria": "Cancel task",
+  "cancelConfirm": "Cancel this task?",
+  "cancelSuccess": "Task cancelled",
+  "cancelError": "Could not cancel task"
 }

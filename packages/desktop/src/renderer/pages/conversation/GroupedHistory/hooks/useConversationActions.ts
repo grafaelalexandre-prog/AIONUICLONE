@@ -297,6 +297,66 @@ export const useConversationActions = ({
     }
   }, [archiveProjectTarget, t]);
 
+  const handleDeleteConversation = useCallback(
+    (conversation: TChatConversation) => {
+      Modal.confirm({
+        title: t('conversation.history.deleteTitle'),
+        content: t('conversation.history.deleteConfirm', { name: conversation.name }),
+        okText: t('common.delete'),
+        cancelText: t('common.cancel'),
+        okButtonProps: { status: 'danger' },
+        onOk: async () => {
+          try {
+            const success = await removeConversation(conversation.id);
+            if (success) {
+              Message.success(t('conversation.history.deleteSuccess'));
+            } else {
+              Message.error(t('conversation.history.deleteFailed'));
+            }
+          } catch (error) {
+            console.error('Failed to delete conversation:', error);
+            Message.error(t('conversation.history.deleteFailed'));
+          }
+        },
+        style: { borderRadius: '12px' },
+        alignCenter: true,
+        getPopupContainer: () => document.body,
+      });
+    },
+    [removeConversation, t]
+  );
+
+  const handleDeleteProjectGroup = useCallback(
+    (conversations: TChatConversation[]) => {
+      if (conversations.length === 0) return;
+      Modal.confirm({
+        title: t('conversation.history.deleteTitle'),
+        content: t('conversation.history.batchDeleteConfirm', { count: conversations.length }),
+        okText: t('common.delete'),
+        cancelText: t('common.cancel'),
+        okButtonProps: { status: 'danger' },
+        onOk: async () => {
+          const results = await Promise.allSettled(
+            conversations.map((conversation) => removeConversation(conversation.id))
+          );
+          const removedCount = results.filter(
+            (result) => result.status === 'fulfilled' && result.value === true
+          ).length;
+          emitter.emit('chat.history.refresh');
+          if (removedCount > 0) {
+            Message.success(t('conversation.history.batchDeleteSuccess', { count: removedCount }));
+          } else {
+            Message.error(t('conversation.history.deleteFailed'));
+          }
+        },
+        style: { borderRadius: '12px' },
+        alignCenter: true,
+        getPopupContainer: () => document.body,
+      });
+    },
+    [removeConversation, t]
+  );
+
   const handleArchive = useCallback(
     async (conversation: TChatConversation) => {
       // Archiving moves the conversation into the archived slice (the backend
@@ -334,6 +394,8 @@ export const useConversationActions = ({
     handleToggleManualUnread,
     handleCreateCronTask,
     handleArchiveProject,
+    handleDeleteConversation,
+    handleDeleteProjectGroup,
     archiveProjectTarget,
     archiveProjectLoading,
     handleArchiveProjectCancel,

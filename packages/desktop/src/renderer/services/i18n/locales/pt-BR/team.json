@@ -16,9 +16,10 @@
     "renameCancel": "Cancelar",
     "renameSuccess": "Equipe renomeada",
     "deleteSuccess": "Equipe excluída",
-    "archive": "Archive",
-    "archiveSuccess": "Team archived",
-    "archiveFailed": "Failed to archive team"
+    "deleteFailed": "Falha ao excluir a equipe",
+    "archive": "Arquivar",
+    "archiveSuccess": "Equipe arquivada",
+    "archiveFailed": "Falha ao arquivar a equipe"
   },
   "newAgent": "Novo Assistente",
   "noMessages": "Nenhuma mensagem ainda.",

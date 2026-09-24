@@ -30,7 +30,7 @@ const SiderScheduledEntry: React.FC<SiderScheduledEntryProps> = ({
 
   if (collapsed) {
     return (
-      <Tooltip {...siderTooltipProps} content={t('cron.scheduledTasks')} position='right'>
+      <Tooltip {...siderTooltipProps} content={t('agentTasks.scheduled')} position='right'>
         <div
           className={classNames(
             'w-full h-34px flex items-center justify-center cursor-pointer transition-colors rd-8px text-t-primary',
@@ -51,7 +51,7 @@ const SiderScheduledEntry: React.FC<SiderScheduledEntryProps> = ({
   }
 
   return (
-    <Tooltip {...siderTooltipProps} content={t('cron.scheduledTasks')} position='right'>
+    <Tooltip {...siderTooltipProps} content={t('agentTasks.scheduled')} position='right'>
       <div
         className={classNames(
           'box-border group h-34px w-full flex items-center justify-start gap-8px ps-10px pe-8px rd-0.5rem cursor-pointer shrink-0 transition-all text-t-primary',
@@ -70,7 +70,7 @@ const SiderScheduledEntry: React.FC<SiderScheduledEntryProps> = ({
           />
         </span>
         <span className='collapsed-hidden text-t-primary text-14px font-[500] leading-24px'>
-          {t('cron.scheduledTasks')}
+          {t('agentTasks.scheduled')}
         </span>
       </div>
     </Tooltip>
