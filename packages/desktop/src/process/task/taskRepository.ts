@@ -14,7 +14,7 @@ import type { CreateTaskInput, ListTasksOptions, Task, TaskStatus } from '@/comm
 export type TaskDatabase = Database.Database;
 
 const TASK_COLUMNS =
-  'id, mission, status, agent_id, assistant_id, workspace, result, error, created_at, started_at, completed_at';
+  'id, mission, status, agent_id, assistant_id, team_id, workspace, result, error, created_at, started_at, completed_at';
 
 type TaskRow = {
   id: string;
@@ -22,6 +22,7 @@ type TaskRow = {
   status: TaskStatus;
   agent_id: string | null;
   assistant_id: string | null;
+  team_id: string | null;
   workspace: string | null;
   result: string | null;
   error: string | null;
@@ -44,6 +45,7 @@ export function ensureTaskSchema(db: TaskDatabase): void {
        status TEXT NOT NULL DEFAULT 'pending',
        agent_id TEXT,
        assistant_id TEXT,
+       team_id TEXT,
        workspace TEXT,
        result TEXT,
        error TEXT,
@@ -54,6 +56,11 @@ export function ensureTaskSchema(db: TaskDatabase): void {
      )`
   );
   db.exec('CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks (status, created_at)');
+  // Migration for databases created before `team_id` existed.
+  const columns = db.prepare('PRAGMA table_info(tasks)').all() as Array<{ name: string }>;
+  if (!columns.some((column) => column.name === 'team_id')) {
+    db.exec('ALTER TABLE tasks ADD COLUMN team_id TEXT');
+  }
 }
 
 export function createTask(db: TaskDatabase, input: CreateTaskInput): Task {
@@ -64,6 +71,7 @@ export function createTask(db: TaskDatabase, input: CreateTaskInput): Task {
     status: 'pending',
     agent_id: null,
     assistant_id: input.assistant_id ?? null,
+    team_id: input.team_id ?? null,
     workspace: input.workspace ?? null,
     created_at: now,
     started_at: null,
@@ -74,9 +82,9 @@ export function createTask(db: TaskDatabase, input: CreateTaskInput): Task {
 
   db.prepare(
     `INSERT INTO tasks
-       (id, mission, status, agent_id, assistant_id, workspace, result, error, created_at, started_at, completed_at, updated_at)
+       (id, mission, status, agent_id, assistant_id, team_id, workspace, result, error, created_at, started_at, completed_at, updated_at)
      VALUES
-       (@id, @mission, @status, @agent_id, @assistant_id, @workspace, @result, @error, @created_at, @started_at, @completed_at, @updated_at)`
+       (@id, @mission, @status, @agent_id, @assistant_id, @team_id, @workspace, @result, @error, @created_at, @started_at, @completed_at, @updated_at)`
   ).run({ ...task, updated_at: now });
 
   return task;
@@ -139,6 +147,17 @@ export function markTaskFailed(db: TaskDatabase, id: string, error: string): voi
   const now = Date.now();
   db.prepare('UPDATE tasks SET status = ?, error = ?, completed_at = ?, updated_at = ? WHERE id = ?').run(
     'failed',
+    error,
+    now,
+    now,
+    id
+  );
+}
+
+export function markTaskCancelled(db: TaskDatabase, id: string, error: string | null): void {
+  const now = Date.now();
+  db.prepare('UPDATE tasks SET status = ?, error = ?, completed_at = ?, updated_at = ? WHERE id = ?').run(
+    'cancelled',
     error,
     now,
     now,

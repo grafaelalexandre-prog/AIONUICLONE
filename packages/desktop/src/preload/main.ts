@@ -11,6 +11,7 @@
 import '@sentry/electron/preload';
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import { ADAPTER_BRIDGE_EVENT_KEY } from '../common/adapter/constant';
+import type { KanbanAPI } from '../common/kanban/kanbanTypes';
 
 /**
  * @description 注入到renderer进程中, 用于与main进程通信
@@ -55,12 +56,33 @@ contextBridge.exposeInMainWorld('electronAPI', {
 // this surface is intentionally thin. `create` kicks a real aioncore
 // conversation; see `src/process/task/taskService.ts`.
 contextBridge.exposeInMainWorld('taskAPI', {
-  create: (mission: string, options?: { assistant_id?: string; workspace?: string }) =>
+  create: (mission: string, options?: { assistant_id?: string; team_id?: string; workspace?: string }) =>
     ipcRenderer.invoke('task:create', { mission, ...options }),
   list: (options?: { status?: string; limit?: number; offset?: number }) => ipcRenderer.invoke('task:list', options),
   get: (id: string) => ipcRenderer.invoke('task:get', id),
+  cancel: (id: string) => ipcRenderer.invoke('task:cancel', id),
   remove: (id: string) => ipcRenderer.invoke('task:delete', id),
 });
+
+// Activity Kanban bridge. Board/card metadata is persisted in the same local
+// SQLite file as tasks; task execution remains owned by taskAPI/taskRunner.
+const kanbanAPI: KanbanAPI = {
+  list: (options) => ipcRenderer.invoke('kanban:list', options),
+  createBoard: (input) => ipcRenderer.invoke('kanban:board:create', input),
+  updateBoard: (input) => ipcRenderer.invoke('kanban:board:update', input),
+  deleteBoard: (input) => ipcRenderer.invoke('kanban:board:delete', input.id),
+  createRole: (input) => ipcRenderer.invoke('kanban:role:create', input),
+  updateRole: (input) => ipcRenderer.invoke('kanban:role:update', input),
+  deleteRole: (input) => ipcRenderer.invoke('kanban:role:delete', input.id),
+  createCard: (input) => ipcRenderer.invoke('kanban:card:create', input),
+  updateCard: (input) => ipcRenderer.invoke('kanban:card:update', input),
+  moveCard: (input) => ipcRenderer.invoke('kanban:card:move', input),
+  dispatchCard: (input) => ipcRenderer.invoke('kanban:card:dispatch', input),
+  createColumn: (input) => ipcRenderer.invoke('kanban:column:create', input),
+  updateColumn: (input) => ipcRenderer.invoke('kanban:column:update', input),
+  deleteColumn: (input) => ipcRenderer.invoke('kanban:column:delete', input.id),
+};
+contextBridge.exposeInMainWorld('kanbanAPI', kanbanAPI);
 
 // Synchronously fetch the aioncore port and expose it to the renderer
 // via contextBridge (direct window assignment is invisible under contextIsolation).

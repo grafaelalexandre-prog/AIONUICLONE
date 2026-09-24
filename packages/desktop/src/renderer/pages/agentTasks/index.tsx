@@ -8,11 +8,15 @@ import classNames from 'classnames';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import useSWR from 'swr';
 import { Button, Empty, Input, Message, Popconfirm, Select, Spin, Tag } from '@arco-design/web-react';
+import { ipcBridge } from '@/common';
 import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
+import { useAuth } from '@renderer/hooks/context/AuthContext';
 import SettingsPageHeader from '@/renderer/pages/settings/components/SettingsPageHeader';
-import { Delete, Robot, Send } from '@icon-park/react';
+import { Delete, Robot, Send, Stopwatch } from '@icon-park/react';
 import type { Task } from '@/common/task/taskTypes';
+import type { TTeam } from '@/common/types/team/teamTypes';
 import { selectableAssistants } from '@/renderer/utils/model/assistantSelection';
 import { isTaskOnlyAssistant } from '@/common/task/taskAssistants';
 import { useAssistantList } from '@/renderer/hooks/assistant/useAssistantList';
@@ -20,6 +24,8 @@ import { useAgentTasks } from './useAgentTasks';
 
 /** Sentinel select value — the runner resolves the assistant itself (task-only first). */
 const AUTO_ASSISTANT = '';
+/** Select value prefix for team targets (`team:<id>`). */
+const TEAM_PREFIX = 'team:';
 
 const statusColor = (status: Task['status']): string => {
   switch (status) {
@@ -31,6 +37,8 @@ const statusColor = (status: Task['status']): string => {
       return 'green';
     case 'failed':
       return 'red';
+    case 'cancelled':
+      return 'gray';
     default:
       return 'gray';
   }
@@ -47,10 +55,16 @@ const AgentTasksPage: React.FC = () => {
   const isMobile = layout?.isMobile ?? false;
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { tasks, loading, error, creating, createTask, deleteTask } = useAgentTasks();
+  const { tasks, loading, error, creating, createTask, deleteTask, cancelTask } = useAgentTasks();
   const { assistants, localeKey } = useAssistantList();
+  const { user } = useAuth();
+  const userId = user?.id ?? 'system_default_user';
+  const { data: teamList } = useSWR<TTeam[]>(`agentTasks/teams/${userId}`, () =>
+    ipcBridge.team.list.invoke({ user_id: userId })
+  );
+  const teams = teamList ?? [];
   const [mission, setMission] = useState('');
-  const [assistantId, setAssistantId] = useState<string>(AUTO_ASSISTANT);
+  const [targetId, setTargetId] = useState<string>(AUTO_ASSISTANT);
   const hasTaskApi = typeof window !== 'undefined' && Boolean(window.taskAPI);
 
   // Enabled assistants with task-only ones (Cline) surfaced first — they are
@@ -64,7 +78,12 @@ const AgentTasksPage: React.FC = () => {
     const trimmed = mission.trim();
     if (!trimmed || creating) return;
     try {
-      const options = assistantId === AUTO_ASSISTANT ? undefined : { assistant_id: assistantId };
+      const options =
+        targetId === AUTO_ASSISTANT
+          ? undefined
+          : targetId.startsWith(TEAM_PREFIX)
+            ? { team_id: targetId.slice(TEAM_PREFIX.length) }
+            : { assistant_id: targetId };
       const task = await createTask(trimmed, options);
       if (task) {
         setMission('');
@@ -73,7 +92,7 @@ const AgentTasksPage: React.FC = () => {
     } catch (err) {
       Message.error(`${t('agentTasks.createError')}: ${err instanceof Error ? err.message : String(err)}`);
     }
-  }, [mission, assistantId, creating, createTask, t]);
+  }, [mission, targetId, creating, createTask, t]);
 
   const handleDelete = useCallback(
     async (id: string) => {
@@ -85,6 +104,18 @@ const AgentTasksPage: React.FC = () => {
       }
     },
     [deleteTask, t]
+  );
+
+  const handleCancel = useCallback(
+    async (id: string) => {
+      try {
+        await cancelTask(id);
+        Message.success(t('agentTasks.cancelSuccess'));
+      } catch (err) {
+        Message.error(`${t('agentTasks.cancelError')}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    },
+    [cancelTask, t]
   );
 
   const row = (task: Task, index: number) => (
@@ -113,6 +144,16 @@ const AgentTasksPage: React.FC = () => {
         </div>
       </div>
       <div className='flex shrink-0 items-center gap-6px' onClick={(e) => e.stopPropagation()}>
+        {(task.status === 'running' || task.status === 'pending') && (
+          <Popconfirm content={t('agentTasks.cancelConfirm')} onConfirm={() => handleCancel(task.id)}>
+            <Stopwatch
+              theme='outline'
+              size={14}
+              className='shrink-0 text-t-secondary hover:text-danger-6 cursor-pointer'
+              aria-label={t('agentTasks.cancelAria')}
+            />
+          </Popconfirm>
+        )}
         <Popconfirm content={t('agentTasks.deleteConfirm')} onConfirm={() => handleDelete(task.id)}>
           <Delete
             theme='outline'
@@ -161,18 +202,29 @@ const AgentTasksPage: React.FC = () => {
       <div className={classNames('shrink-0', isMobile ? 'px-16px pb-14px' : 'px-12px pb-14px md:px-40px md:pb-16px')}>
         <div className='mx-auto w-full max-w-800px box-border flex items-stretch gap-8px'>
           <Select
-            className='w-180px shrink-0'
-            value={assistantId}
-            onChange={(value) => setAssistantId(value as string)}
+            className='w-200px shrink-0'
+            value={targetId}
+            onChange={(value) => setTargetId(value as string)}
             aria-label={t('agentTasks.assistantLabel')}
-            disabled={assistantOptions.length === 0}
+            disabled={assistantOptions.length === 0 && teams.length === 0}
           >
-            <Select.Option value={AUTO_ASSISTANT}>{t('agentTasks.assistantAuto')}</Select.Option>
-            {assistantOptions.map((assistant) => (
-              <Select.Option key={assistant.id} value={assistant.id}>
-                {assistant.name_i18n?.[localeKey] || assistant.name}
-              </Select.Option>
-            ))}
+            <Select.OptGroup label={t('agentTasks.assistantGroupLabel')}>
+              <Select.Option value={AUTO_ASSISTANT}>{t('agentTasks.assistantAuto')}</Select.Option>
+              {assistantOptions.map((assistant) => (
+                <Select.Option key={assistant.id} value={assistant.id}>
+                  {assistant.name_i18n?.[localeKey] || assistant.name}
+                </Select.Option>
+              ))}
+            </Select.OptGroup>
+            {teams.length > 0 && (
+              <Select.OptGroup label={t('agentTasks.teamGroupLabel')}>
+                {teams.map((team) => (
+                  <Select.Option key={team.id} value={`${TEAM_PREFIX}${team.id}`}>
+                    {team.name}
+                  </Select.Option>
+                ))}
+              </Select.OptGroup>
+            )}
           </Select>
           <Input.TextArea
             className='flex-1'

@@ -11,20 +11,26 @@
  * when aioncore reported the turn finished AND an assistant reply exists.
  */
 
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import type { Task } from '@/common/task/taskTypes';
 import { isTaskOnlyAssistant } from '@/common/task/taskAssistants';
 import {
   createConversation,
+  cancelConversation,
+  ensureTeamSession,
   getConversation,
   getMessages,
+  getTeam,
   listAssistants,
   sendMessage,
+  sendTeamMessage,
   type AioncoreMessage,
 } from './aioncoreClient';
 import {
   claimNextPendingTask,
   getTask,
+  markTaskCancelled,
   markTaskCompleted,
   markTaskFailed,
   setTaskConversation,
@@ -35,6 +41,60 @@ const DEFAULT_POLL_INTERVAL_MS = 1_000;
 const DEFAULT_TURN_TIMEOUT_MS = 10 * 60 * 1_000;
 /** Transient poll failures tolerated before the turn is declared lost. */
 const MAX_CONSECUTIVE_POLL_ERRORS = 5;
+
+/** Mission directory inside the workspace. */
+const MISSION_DIR = '.aion/mission';
+/** Path to the mission state.json. */
+function missionStatePath(workspace: string): string {
+  return join(workspace, MISSION_DIR, 'state.json');
+}
+
+/** Best-effort write of the mission state.json. A file write failure
+ *  must never fail the task. */
+function writeMissionState(workspace: string, state: unknown): void {
+  try {
+    const path = missionStatePath(workspace);
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, JSON.stringify(state, null, 2) + '\n', 'utf8');
+  } catch {
+    // Tolerated — the task/mission proceeds without the durable mirror.
+  }
+}
+
+/** Update only the `plan` field in state.json from an ACP
+ *  `PlanUpdate` event emitted by the agent. The plan array is
+ *  REPLACED wholesale with the most recent plan received from
+ *  the agent — never synthesized locally. */
+function writeMissionPlanUpdate(workspace: string, plan: unknown[]): void {
+  try {
+    const path = missionStatePath(workspace);
+    const raw = readFileSync(path, 'utf8');
+    const state = JSON.parse(raw) as { plan?: unknown[] };
+    state.plan = plan;
+    writeFileSync(path, JSON.stringify(state, null, 2) + '\n', 'utf8');
+  } catch {
+    // Tolerated — state.json may not exist yet (mission not started).
+  }
+}
+
+/** Write a task result markdown file into <workspace>/.aion/mission/results/. */
+function writeTaskResult(workspace: string, taskId: string, status: string, detail: string): void {
+  try {
+    const resultsDir = join(workspace, MISSION_DIR, 'results');
+    mkdirSync(resultsDir, { recursive: true });
+    const safeName = taskId.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const md = [
+      `# Task ${taskId}`,
+      '',
+      `- Status: ${status}`,
+      `- ${status === 'completed' ? 'Result' : 'Detail'}: ${detail}`,
+      '',
+    ].join('\n');
+    writeFileSync(join(resultsDir, `${safeName}.md`), md, 'utf8');
+  } catch {
+    // Tolerated.
+  }
+}
 
 export type TaskRunnerOptions = {
   db: TaskDatabase;
@@ -50,6 +110,14 @@ export type TaskRunnerOptions = {
 
 type TurnOutcome = { ok: true; reply: string | null } | { ok: false; error: string };
 
+/** Thrown when a task is cancelled by the user while its turn is in flight. */
+class TaskCancelledError extends Error {
+  constructor() {
+    super('task cancelled');
+    this.name = 'TaskCancelledError';
+  }
+}
+
 export class TaskRunner {
   private readonly db: TaskDatabase;
   private readonly getBackendPort: () => number;
@@ -61,6 +129,8 @@ export class TaskRunner {
 
   private timer: ReturnType<typeof setInterval> | null = null;
   private busy = false;
+  /** Tasks explicitly cancelled by the user. Used to interrupt in-flight turns and release the serial queue. */
+  private cancelled = new Set<string>();
 
   constructor(options: TaskRunnerOptions) {
     this.db = options.db;
@@ -85,6 +155,25 @@ export class TaskRunner {
     if (!this.timer) return;
     clearInterval(this.timer);
     this.timer = null;
+  }
+
+  /** Request cancellation of a running/pending task: mark it `cancelled` in the
+   *  DB, interrupt the in-flight backend turn (best-effort), and release the
+   *  serial queue within one poll interval. */
+  async cancelTask(taskId: string): Promise<void> {
+    this.cancelled.add(taskId);
+    markTaskCancelled(this.db, taskId, null);
+    const task = getTask(this.db, taskId);
+    if (!task?.agent_id) return;
+    try {
+      const detail = await getConversation(this.getBackendPort(), task.agent_id);
+      const turnId = detail.runtime?.turn_id ?? null;
+      await cancelConversation(this.getBackendPort(), task.agent_id, turnId);
+    } catch {
+      // Backend unreachable or conversation already settled — the task is
+      // already marked `cancelled` in the DB; `awaitTurn` detects it via
+      // `this.cancelled` and `runTask` skips markTaskCompleted/markTaskFailed.
+    }
   }
 
   private async tick(): Promise<void> {
@@ -124,15 +213,32 @@ export class TaskRunner {
       markTaskFailed(this.db, task.id, 'aioncore is not running — cannot dispatch the task');
       return;
     }
+    const workspace = task.workspace ?? this.defaultWorkspace;
 
     try {
+      // Team missions skip single-assistant resolution entirely: the backend
+      // routes them to the leader, which coordinates the members itself.
+      if (task.team_id) {
+        const teamConversationId = await this.dispatchTeamTask(port, task.team_id, task.mission);
+        setTaskConversation(this.db, task.id, teamConversationId);
+        this.log(`[TaskRunner] ${task.id} -> team conversation ${teamConversationId}`);
+        // Persist the mission mirror so the .aion/mission layer can
+        // track progress even for team missions.
+        writeMissionState(workspace, { objective: task.mission, plan: [], turn_id: teamConversationId, workspace, project: null, target_url: '', evidence: {}, result: null });
+        const teamReply = await this.awaitTurn(port, teamConversationId, task.id);
+        const current = getTask(this.db, task.id);
+        if (current?.status === 'cancelled') return;
+        markTaskCompleted(this.db, task.id, teamReply);
+        writeTaskResult(workspace, task.id, 'completed', teamReply);
+        return;
+      }
+
       const assistantId = task.assistant_id ?? (await this.resolveAssistantId(port));
       if (!assistantId) {
         markTaskFailed(this.db, task.id, 'no enabled assistant is available in aioncore to run this task');
         return;
       }
 
-      const workspace = task.workspace ?? this.defaultWorkspace;
       mkdirSync(workspace, { recursive: true });
 
       // 1. Conversation. `extra.workspace` is mandatory; `title` / `type: 'task'`
@@ -144,18 +250,35 @@ export class TaskRunner {
       });
       setTaskConversation(this.db, task.id, conversationId);
       this.log(`[TaskRunner] ${task.id} -> conversation ${conversationId}`);
+      // Persist the mission mirror so the .aion/mission layer can
+      // track progress from the start of the turn.
+      writeMissionState(workspace, { objective: task.mission, plan: [], turn_id: conversationId, workspace, project: null, target_url: '', evidence: {}, result: null });
 
       // 2. Message — starts the agent turn (202 Accepted).
       await sendMessage(port, conversationId, task.mission);
 
       // 3. Wait for the turn to finish and read the agent's real reply.
-      const reply = await this.awaitTurn(port, conversationId);
+      const reply = await this.awaitTurn(port, conversationId, task.id);
+      const current = getTask(this.db, task.id);
+      if (current?.status === 'cancelled') {
+        writeTaskResult(workspace, task.id, 'cancelled', 'user cancelled');
+        return;
+      }
       markTaskCompleted(this.db, task.id, reply);
+      writeTaskResult(workspace, task.id, 'completed', reply);
     } catch (error) {
+      // Cancellation wins over every other error: the task was
+      // explicitly cancelled by the user, so the DB row is already
+      // `cancelled` and the serial queue must be released.
+      if (error instanceof TaskCancelledError) {
+        writeTaskResult(workspace, task.id, 'cancelled', 'user cancelled');
+        return;
+      }
       // Every failure path — HTTP rejection, unusable workspace, timeout, agent
       // error turn — lands here with the backend's own message. Nothing is ever
       // reported as completed unless a real reply was read back.
       markTaskFailed(this.db, task.id, describeError(error));
+      writeTaskResult(workspace, task.id, 'failed', describeError(error));
     }
   }
 
@@ -168,17 +291,67 @@ export class TaskRunner {
   }
 
   /**
+   * Route a team mission: resolve the leader conversation, ensure the team
+   * session is up and deliver the mission through the team endpoint. Returns
+   * the leader conversation id so the caller awaits the leader's reply through
+   * the regular single-conversation turn machinery.
+   */
+  private async dispatchTeamTask(port: number, teamId: string, mission: string): Promise<string> {
+    const team = await getTeam(port, teamId);
+    if (!team) {
+      throw new Error(`team ${teamId} was not found in aioncore`);
+    }
+    const leader =
+      team.assistants?.find((assistant) => assistant.slot_id === team.leader_assistant_id) ??
+      team.assistants?.find((assistant) => assistant.role === 'leader');
+    if (!leader?.conversation_id) {
+      throw new Error(`team ${teamId} has no leader conversation`);
+    }
+
+    // Best effort: a stopped session must come up before the mission lands.
+    // A session already running answers the same way, so failure here is not
+    // fatal — the send below reports the real error if the team cannot run.
+    await ensureTeamSession(port, teamId).catch((): undefined => undefined);
+    await sendTeamMessage(port, teamId, mission);
+
+    // Wait briefly for the leader turn to leave `idle` (≤5 s at 100 ms ticks)
+    // so the first poll of `awaitTurn` cannot mistake the pre-run state for
+    // completion and harvest a stale reply. A turn that stays queued simply
+    // exhausts the window and normal polling takes over.
+    const deadline = Date.now() + 5_000;
+    while (Date.now() < deadline) {
+      let state = 'idle';
+      try {
+        state = (await getConversation(port, leader.conversation_id)).runtime?.state ?? 'idle';
+      } catch {
+        break; // transport hiccup — let awaitTurn apply its retry tolerance
+      }
+      if (state !== 'idle') break;
+      await delay(100);
+    }
+
+    return leader.conversation_id;
+  }
+
+  /**
    * Poll until the conversation reports `runtime.state === 'idle'`, then read the
    * transcript and return the agent's reply.
    *
    * Poll errors are tolerated a few times (the backend may be restarting), but a
-   * sustained outage throws instead of silently waiting out the whole timeout.
+   *  sustained outage throws instead of silently waiting out the whole timeout.
+   *  If the task is cancelled while polling, throws `TaskCancelledError` immediately
+   *  so the serial queue is released within one poll interval.
    */
-  private async awaitTurn(port: number, conversationId: string): Promise<string | null> {
+  private async awaitTurn(port: number, conversationId: string, taskId: string): Promise<string | null> {
     const deadline = Date.now() + this.turnTimeoutMs;
     let consecutiveErrors = 0;
 
     while (Date.now() < deadline) {
+      // If the user cancelled this task, bail out immediately and release
+      // the serial queue. `cancelTask` already marked the DB row `cancelled`.
+      if (this.cancelled.has(taskId)) {
+        throw new TaskCancelledError();
+      }
       let detail;
       try {
         detail = await getConversation(port, conversationId);

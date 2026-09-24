@@ -6,7 +6,7 @@
  * other modules (Teams, WebUI, etc.) without pulling in platform-specific code.
  */
 
-export type TaskStatus = 'pending' | 'running' | 'completed' | 'failed';
+export type TaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
 
 /** A single task entity. Stable contract — do not narrow without a migration. */
 export type Task = {
@@ -15,6 +15,8 @@ export type Task = {
   status: TaskStatus;
   agent_id: string | null;
   assistant_id: string | null;
+  /** Team id when the mission targets a team (the leader orchestrates members). Null for single-assistant tasks. */
+  team_id: string | null;
   workspace: string | null;
   created_at: number;
   started_at: number | null;
@@ -26,6 +28,7 @@ export type Task = {
 export type CreateTaskInput = {
   mission: string;
   assistant_id?: string | null;
+  team_id?: string | null;
   workspace?: string | null;
 };
 

@@ -1,4 +1,5 @@
 import type { ListTasksOptions, Task } from '@/common/task/taskTypes';
+import type { KanbanAPI } from '@/common/kanban/kanbanTypes';
 
 // WebUI 状态接口 / WebUI status interface
 export interface WebUIStatus {
@@ -102,10 +103,16 @@ declare global {
      * the renderer runs without Electron — callers must guard on it.
      */
     taskAPI?: {
-      create: (mission: string, options?: { assistant_id?: string; workspace?: string }) => Promise<Task>;
+      create: (
+        mission: string,
+        options?: { assistant_id?: string; team_id?: string; workspace?: string }
+      ) => Promise<Task>;
       list: (options?: ListTasksOptions) => Promise<Task[]>;
       get: (id: string) => Promise<Task | null>;
+      cancel: (id: string) => Promise<Task | null>;
       remove: (id: string) => Promise<boolean>;
     };
+    /** Activity Kanban bridge; absent in WebUI browser mode. */
+    kanbanAPI?: KanbanAPI;
   }
 }

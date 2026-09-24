@@ -12,7 +12,8 @@ export type UseAgentTasksResult = {
   loading: boolean;
   error: string | null;
   creating: boolean;
-  createTask: (mission: string, options?: { assistant_id?: string }) => Promise<Task | null>;
+  createTask: (mission: string, options?: { assistant_id?: string; team_id?: string }) => Promise<Task | null>;
+  cancelTask: (id: string) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -40,7 +41,7 @@ export function useAgentTasks(): UseAgentTasksResult {
       return;
     }
     try {
-      const result = await api.list();
+      const result = await api.list({ limit: 500 });
       setTasks(result);
       setError(null);
     } catch (err) {
@@ -60,7 +61,7 @@ export function useAgentTasks(): UseAgentTasksResult {
   }, [refresh]);
 
   const createTask = useCallback(
-    async (mission: string, options?: { assistant_id?: string }): Promise<Task | null> => {
+    async (mission: string, options?: { assistant_id?: string; team_id?: string }): Promise<Task | null> => {
       const api = window.taskAPI;
       if (!api) return null;
       setCreating(true);
@@ -75,6 +76,16 @@ export function useAgentTasks(): UseAgentTasksResult {
     [refresh]
   );
 
+  const cancelTask = useCallback(
+    async (id: string): Promise<void> => {
+      const api = window.taskAPI;
+      if (!api) return;
+      await api.cancel(id);
+      await refresh();
+    },
+    [refresh]
+  );
+
   const deleteTask = useCallback(
     async (id: string): Promise<void> => {
       const api = window.taskAPI;
@@ -85,5 +96,5 @@ export function useAgentTasks(): UseAgentTasksResult {
     [refresh]
   );
 
-  return { tasks, loading, error, creating, createTask, deleteTask, refresh };
+  return { tasks, loading, error, creating, createTask, cancelTask, deleteTask, refresh };
 }

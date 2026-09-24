@@ -37,7 +37,7 @@ export type AioncoreMessage = {
 export type AioncoreConversationDetail = {
   id: string;
   status?: string;
-  runtime?: { state?: string; is_processing?: boolean };
+  runtime?: { state?: string; is_processing?: boolean; turn_id?: string | null };
 };
 
 /**
@@ -188,6 +188,44 @@ export async function sendMessage(port: number, conversationId: string, content:
 /** Read a conversation, including its `runtime.state`. */
 export async function getConversation(port: number, conversationId: string): Promise<AioncoreConversationDetail> {
   return call<AioncoreConversationDetail>(port, `/api/conversations/${encodeURIComponent(conversationId)}`, 'GET');
+}
+
+/** Cancel an in-flight turn. No-op when `turn_id` is absent (no active turn). */
+export async function cancelConversation(port: number, conversationId: string, turn_id: string | null): Promise<void> {
+  if (!turn_id) return;
+  await callAllowNoData(port, `/api/conversations/${encodeURIComponent(conversationId)}/cancel`, { turn_id });
+}
+
+/** Team row as returned by `GET /api/teams/:id` — subset the runner relies on. */
+export type AioncoreTeam = {
+  id: string;
+  name?: string;
+  leader_assistant_id?: string;
+  assistants?: Array<{ slot_id?: string; conversation_id?: string; role?: string }>;
+};
+
+/** Fetch a team; `null` when the backend has no such team. */
+export async function getTeam(port: number, teamId: string): Promise<AioncoreTeam | null> {
+  return call<AioncoreTeam | null>(port, `/api/teams/${encodeURIComponent(teamId)}`, 'GET');
+}
+
+/** POST whose success envelope may omit the `data` field (unlike `call`). */
+async function callAllowNoData(port: number, path: string, body: unknown): Promise<void> {
+  const { status, payload } = await request(port, path, 'POST', body);
+  const envelope = (payload ?? {}) as { success?: unknown; error?: unknown };
+  if (status < 200 || status >= 300 || envelope.success === false) {
+    throw new AioncoreError(describeFailure(envelope, payload, status), status);
+  }
+}
+
+/** Bring the whole team session up (leader + member runtimes). */
+export async function ensureTeamSession(port: number, teamId: string): Promise<void> {
+  await callAllowNoData(port, `/api/teams/${encodeURIComponent(teamId)}/session`, {});
+}
+
+/** Deliver a mission to the team — the leader receives it and coordinates members. */
+export async function sendTeamMessage(port: number, teamId: string, content: string): Promise<void> {
+  await callAllowNoData(port, `/api/teams/${encodeURIComponent(teamId)}/messages`, { content });
 }
 
 /** Read the conversation transcript, oldest first. */
