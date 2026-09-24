@@ -1,0 +1,10 @@
+{
+  "source": "Read-only MCP snapshot captured before eval runs",
+  "project_id": "default",
+  "eap_total_nos": 10,
+  "eap_total_problemas": 0,
+  "eap_arvore_valida": true,
+  "cron_total_dependencias": 5,
+  "cron_total_problemas": 0,
+  "cron_rede_valida": true
+}
