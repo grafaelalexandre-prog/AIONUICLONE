@@ -19,7 +19,8 @@ jobs:
         node-version: [18]
         
     defaults:
-      run: pwsh -Version 7
+      run:
+        shell: pwsh
       
     steps:
     - name: Checkout repository
