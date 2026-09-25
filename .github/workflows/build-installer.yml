@@ -17,7 +17,6 @@ jobs:
     defaults:
       run:
         shell: pwsh
-        working-directory: packages/desktop
       
     steps:
     - name: Checkout repository
@@ -34,14 +33,17 @@ jobs:
         cache-dependency-path: packages/desktop/package-lock.json
         
     - name: Install dependencies
+      working-directory: packages/desktop
       run: npm install --frozen-lockfile
       
     - name: Build with memory limits
+      working-directory: packages/desktop
       run: |
         Write-Host '🚀 Starting build...' -ForegroundColor Green
         bun run build
         
     - name: Verify installer
+      working-directory: packages/desktop
       run: |
         if (Test-Path 'out/AionUi-2.2.2-win-x64.exe') {
           Write-Host '✅ Installer created successfully!' -ForegroundColor Green
