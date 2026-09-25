@@ -26,8 +26,8 @@ jobs:
       with:
         node-version: '20'
         
-    - name: Install root dependencies (disable workspaces)
-      run: npm install --workspaces=false --ignore-scripts --legacy-peer-deps
+    - name: Install root dependencies (no workspaces)
+      run: npm install --no-workspaces --ignore-scripts --legacy-peer-deps
       
     - name: Cache node_modules
       uses: actions/cache@v4
