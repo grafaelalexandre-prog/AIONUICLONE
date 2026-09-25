@@ -1,0 +1,61 @@
+name: Build Windows Installer
+
+on:
+  push:
+    branches: [main, 'feat/*']
+    tags:
+      - 'v*'
+
+env:
+  NODE_OPTIONS: --max-old-space-size=16384
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    
+    strategy:
+      matrix:
+        node-version: [18]
+        
+    defaults:
+      run: pwsh -Version 7
+      
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        ref: ${{ github.ref }}
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-key: '${{ runner.os }}-node-${{ matrix.node-version }}-'
+        
+    - name: Install dependencies
+      run: npm install --frozen-lockfile
+      
+    - name: Build with memory limits
+      run: |
+        Write-Host '🚀 Starting build...' -ForegroundColor Green
+        bun run build
+        
+    - name: Verify installer
+      run: |
+        if (Test-Path 'out/AionUi-2.2.2-win-x64.exe') {
+          Write-Host '✅ Installer created successfully!' -ForegroundColor Green
+        } else {
+          Write-Host '❌ ERROR: Installer not found!' -ForegroundColor Red
+          Get-ChildItem 'out' -ErrorAction SilentlyContinue | Write-Host
+          exit 1
+        }
+        
+    - name: Upload installer artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: AionUi-Windows-Installer
+        path: out/AionUi-2.2.2-win-x64.exe
+        retention-days: 7
