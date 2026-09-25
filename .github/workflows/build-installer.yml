@@ -26,20 +26,27 @@ jobs:
       with:
         node-version: '20'
         
-    - name: Install root dependencies (no workspaces)
-      run: npm install --no-workspaces --ignore-scripts --legacy-peer-deps
-      
-    - name: Cache node_modules
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 9
+        run_install: false
+        
+    - name: Cache pnpm store
       uses: actions/cache@v4
       with:
         path: |
+          ~/.pnpm-store
           node_modules
           packages/desktop/node_modules
           packages/web-host/node_modules
-        key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json', 'packages/desktop/package-lock.json', 'packages/web-host/package-lock.json') }}
+        key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml', 'packages/desktop/pnpm-lock.yaml', 'packages/web-host/pnpm-lock.yaml') }}
         restore-keys: |
-          ${{ runner.os }}-node-
+          ${{ runner.os }}-pnpm-
         
+    - name: Install dependencies with pnpm
+      run: pnpm install --frozen-lockfile --ignore-scripts
+      
     - name: Build with memory limits
       working-directory: packages/desktop
       run: |
