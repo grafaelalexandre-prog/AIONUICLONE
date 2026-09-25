@@ -14,13 +14,10 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 120
     
-    strategy:
-      matrix:
-        node-version: [18]
-        
     defaults:
       run:
         shell: pwsh
+        working-directory: packages/desktop
       
     steps:
     - name: Checkout repository
@@ -32,9 +29,9 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ matrix.node-version }}
+        node-version: '20'
         cache: 'npm'
-        cache-key: '${{ runner.os }}-node-${{ matrix.node-version }}-'
+        cache-dependency-path: packages/desktop/package-lock.json
         
     - name: Install dependencies
       run: npm install --frozen-lockfile
@@ -58,5 +55,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: AionUi-Windows-Installer
-        path: out/AionUi-2.2.2-win-x64.exe
+        path: packages/desktop/out/AionUi-2.2.2-win-x64.exe
         retention-days: 7
